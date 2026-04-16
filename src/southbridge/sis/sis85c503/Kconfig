@@ -1,0 +1,5 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config SOUTHBRIDGE_SIS_SIS85C503
+	bool
+	select HAVE_PIRQ_TABLE

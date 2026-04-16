@@ -1,6 +1,7 @@
 ## SPDX-License-Identifier: GPL-2.0-or-later
 
 ramstage-y += l2_cache.c
+subdirs-y += ../model_5xx
 subdirs-y += ../model_6xx
 subdirs-y += ../model_65x
 subdirs-y += ../model_67x

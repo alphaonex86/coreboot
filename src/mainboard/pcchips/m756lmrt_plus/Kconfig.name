@@ -1,0 +1,7 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config BOARD_PCCHIPS_M756LMRT_PLUS
+	bool "M756LMRT+"
+	help
+	  PCChips M756LMRT+ V5.3 mainboard with SiS 630 chipset,
+	  Slot-1 + Socket 370 combo, ITE IT8705AF Super I/O.

@@ -1,0 +1,37 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+if BOARD_PCCHIPS_M756LMRT_PLUS
+
+config BOARD_SPECIFIC_OPTIONS
+	def_bool y
+	select NORTHBRIDGE_SIS_SIS630
+	select SOUTHBRIDGE_SIS_SIS85C503
+	select SUPERIO_ITE_IT8705F
+	select CPU_INTEL_SLOT_1
+	select HAVE_PIRQ_TABLE
+	select BOARD_ROMSIZE_KB_256
+	select MISSING_BOARD_RESET
+
+config MAINBOARD_DIR
+	default "pcchips/m756lmrt_plus"
+
+config MAINBOARD_PART_NUMBER
+	default "M756LMRT+"
+
+config IRQ_SLOT_COUNT
+	int
+	default 5
+
+config DCACHE_RAM_SIZE
+	hex
+	default 0x08000
+
+config VGA_BIOS_FILE
+	string
+	default "src/mainboard/pcchips/m756lmrt_plus/sis630_vgabios.bin" if VGA_BIOS
+
+config VGA_BIOS_ID
+	string
+	default "1039,6300" if VGA_BIOS
+
+endif # BOARD_PCCHIPS_M756LMRT_PLUS

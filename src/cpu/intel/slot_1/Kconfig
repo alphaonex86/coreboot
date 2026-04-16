@@ -2,6 +2,7 @@
 
 config CPU_INTEL_SLOT_1
 	bool
+	select CPU_INTEL_MODEL_5XX
 	select CPU_INTEL_MODEL_65X
 	select CPU_INTEL_MODEL_67X
 	select CPU_INTEL_MODEL_68X

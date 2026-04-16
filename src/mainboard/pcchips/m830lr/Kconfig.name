@@ -1,0 +1,6 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config BOARD_PCCHIPS_M830LR
+	bool "M830LR"
+	help
+	  PCChips M830LR mainboard with SIS 735 chipset, Socket A, DDR SDRAM.

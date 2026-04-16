@@ -1,0 +1,33 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config CPU_AMD_SOCKET_A
+	bool
+	select CPU_AMD_MODEL_7XX
+	select NO_SMM
+	select UDELAY_TSC
+	select TSC_MONOTONIC_TIMER
+	select UNKNOWN_TSC_RATE
+	select ARCH_X86
+
+if CPU_AMD_SOCKET_A
+
+config DCACHE_RAM_BASE
+	hex
+	default 0xc8000
+
+config DCACHE_RAM_SIZE
+	hex
+	default 0x08000
+
+config PRERAM_CBFS_CACHE_SIZE
+	default 0x0
+
+config DCACHE_BSP_STACK_SIZE
+	hex
+	default 0x1000
+
+config C_ENV_BOOTBLOCK_SIZE
+	hex
+	default 0x10000
+
+endif

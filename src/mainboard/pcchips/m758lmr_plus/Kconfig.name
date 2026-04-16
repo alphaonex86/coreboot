@@ -1,0 +1,6 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config BOARD_PCCHIPS_M758LMR_PLUS
+	bool "M758LMR+"
+	help
+	  PCChips M758LMR+ mainboard with SIS 630 chipset, Socket 370.

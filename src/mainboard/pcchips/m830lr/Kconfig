@@ -1,0 +1,29 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+if BOARD_PCCHIPS_M830LR
+
+config BOARD_SPECIFIC_OPTIONS
+	def_bool y
+	select NORTHBRIDGE_SIS_SIS735
+	select SOUTHBRIDGE_SIS_SIS85C503
+	select SUPERIO_SIS_SIS950
+	select CPU_AMD_SOCKET_A
+	select HAVE_PIRQ_TABLE
+	select BOARD_ROMSIZE_KB_1024
+	select MISSING_BOARD_RESET
+
+config MAINBOARD_DIR
+	default "pcchips/m830lr"
+
+config MAINBOARD_PART_NUMBER
+	default "M830LR"
+
+config IRQ_SLOT_COUNT
+	int
+	default 8
+
+config DCACHE_RAM_SIZE
+	hex
+	default 0x08000
+
+endif # BOARD_PCCHIPS_M830LR

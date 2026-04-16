@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+chip northbridge/sis/sis735
+
+	device cpu_cluster 0 on end
+
+	device domain 0 on
+		device pci 0.0 on end			# SIS 735 Host Bridge
+		device pci 1.0 on end			# AGP Bridge
+
+		chip southbridge/sis/sis85c503
+			device pci 2.0 on		# ISA/LPC Bridge (SIS 503)
+				chip superio/sis/sis950
+					device pnp 2e.0 off end		# FDC
+					device pnp 2e.4 on		# COM1
+						io 0x60 = 0x3f8
+						irq 0x70 = 4
+					end
+					device pnp 2e.3 off end		# COM2/LPT
+					device pnp 2e.5 on		# KBC
+						io 0x60 = 0x60
+						io 0x62 = 0x64
+						irq 0x70 = 1
+					end
+				end
+			end
+			device pci 2.5 on end		# IDE (SIS 5513)
+			device pci 2.7 on end		# USB (SIS 7001)
+		end
+	end
+end

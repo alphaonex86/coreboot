@@ -1,0 +1,30 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+if BOARD_PCCHIPS_M810LMR
+
+config BOARD_SPECIFIC_OPTIONS
+	def_bool y
+	select NORTHBRIDGE_SIS_SIS730
+	select SOUTHBRIDGE_SIS_SIS85C503
+	select SUPERIO_SIS_SIS950
+	select CPU_AMD_SOCKET_A
+	select CPU_INTEL_SLOT_1
+	select HAVE_PIRQ_TABLE
+	select BOARD_ROMSIZE_KB_1024
+	select MISSING_BOARD_RESET
+
+config MAINBOARD_DIR
+	default "pcchips/m810lmr"
+
+config MAINBOARD_PART_NUMBER
+	default "M810LMR"
+
+config IRQ_SLOT_COUNT
+	int
+	default 4
+
+config DCACHE_RAM_SIZE
+	hex
+	default 0x08000
+
+endif # BOARD_PCCHIPS_M810LMR

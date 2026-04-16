@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+chip northbridge/sis/sis630
+
+	device cpu_cluster 0 on end
+
+	device domain 0 on
+		device pci 0.0 on end			# SiS 630 Host Bridge
+		device pci 0.1 on end			# IDE (SiS 5513)
+
+		chip southbridge/sis/sis85c503
+			device pci 1.0 on		# ISA/LPC Bridge (SiS 85C503)
+				chip superio/ite/it8705f
+					device pnp 2e.0 on		# FDC
+						io 0x60 = 0x3f0
+						irq 0x70 = 6
+						drq 0x74 = 2
+					end
+					device pnp 2e.1 on		# COM1
+						io 0x60 = 0x3f8
+						irq 0x70 = 4
+					end
+					device pnp 2e.2 on		# COM2
+						io 0x60 = 0x2f8
+						irq 0x70 = 3
+					end
+					device pnp 2e.3 on		# LPT
+						io 0x60 = 0x378
+						irq 0x70 = 7
+						drq 0x74 = 3
+					end
+					device pnp 2e.4 on		# EC / hwmon
+						io 0x60 = 0x290
+						io 0x62 = 0x000
+						irq 0x70 = 0
+					end
+					device pnp 2e.5 on		# PS/2 keyboard
+						io 0x60 = 0x60
+						io 0x62 = 0x64
+						irq 0x70 = 1
+					end
+					device pnp 2e.6 on		# PS/2 mouse
+						irq 0x70 = 12
+					end
+					device pnp 2e.7 off end		# GPIO
+					device pnp 2e.8 off end		# MIDI
+					device pnp 2e.9 off end		# Gameport
+					device pnp 2e.a off end		# Consumer IR
+				end
+			end
+			device pci 1.1 on end		# SiS 900 PCI Fast Ethernet
+			device pci 1.2 on end		# USB 1.1 OHCI #1
+			device pci 1.3 on end		# USB 1.1 OHCI #2
+			device pci 1.4 on end		# SiS PCI Audio Accelerator
+		end
+
+		device pci 2.0 on			# AGP Port (virtual PCI-to-PCI bridge)
+			device pci 0.0 on end		# Integrated VGA (SiS 630/730)
+		end
+	end
+end

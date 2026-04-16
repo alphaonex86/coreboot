@@ -1,0 +1,7 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config NORTHBRIDGE_SIS_SIS735
+	bool
+	select BOOT_DEVICE_NOT_SPI_FLASH
+	select HAVE_DEBUG_RAM_SETUP
+	select NO_ECAM_MMCONF_SUPPORT

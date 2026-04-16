@@ -1,0 +1,6 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config BOARD_PCCHIPS_M810LMR
+	bool "M810LMR"
+	help
+	  PCChips M810LMR mainboard with SIS 730 chipset, Socket A.

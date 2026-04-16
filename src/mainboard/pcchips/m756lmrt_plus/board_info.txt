@@ -1,0 +1,6 @@
+Category: desktop
+Board URL: https://theretroweb.com/motherboards/s/pcchips-m756lmrt-plus-v5-3
+ROM package: DIP32
+ROM protocol: Parallel
+ROM socketed: y
+Flashrom support: y

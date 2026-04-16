@@ -1,3 +1,5 @@
 ## SPDX-License-Identifier: GPL-2.0-only
 
+source "src/cpu/amd/socket_a/Kconfig"
+source "src/cpu/amd/model_7xx/Kconfig"
 source "src/cpu/amd/pi/Kconfig"
