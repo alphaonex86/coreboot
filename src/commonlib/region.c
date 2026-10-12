@@ -328,7 +328,6 @@ static ssize_t mdev_readat(const struct region_device *rd, void *b,
 
 	mdev = container_of(rd, __typeof__(*mdev), rdev);
 
-printk(BIOS_DEBUG, "!!read at %p<-%p n:%u TODO\n", b, &mdev->base[offset], size);
 
 #if ENV_BOOTBLOCK
 	uintptr_t dstaddr = (uintptr_t) b;
@@ -343,7 +342,6 @@ printk(BIOS_DEBUG, "!!read at %p<-%p n:%u TODO\n", b, &mdev->base[offset], size)
 		(srcaddr <= 0xffffffff)
 	)
 	{
-printk(BIOS_DEBUG, "don't copy from ROM to ROM \n");
 		//don't copy from ROM to the same ROM
 		return size;
 	}

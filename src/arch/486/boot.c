@@ -69,10 +69,6 @@ void arch_prog_run(struct prog *prog)
 
 	doit = prog_entry(prog);
 
-	printk(BIOS_DEBUG, "DOIT prog:%p doit:%p arg %p\n",
-		prog, doit, prog_entry_arg(prog)
-	);
-
 	doit(prog_entry_arg(prog));
 #endif
 }

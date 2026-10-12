@@ -32,19 +32,7 @@
 )
 
 
-/* send_uart: write AL to COM1 and wait until sent, in the debug ROM only (the flash ROM keeps
- * COM1 silent). pci_write/pci_read: PCI configuration byte access, see cpu/486/cache_as_ram.S. */
-#if CONFIG(CONSOLE_SERIAL)
-#define send_uart		\
-	movw	$0x3f8, %dx;	\
-	outb	%al, %dx;	\
-1:	movw	$0x3fd, %dx;	\
-	inb	%dx, %al;	\
-	testb	$0x20, %al;	\
-	jz	1b
-#else
-#define send_uart
-#endif
+/* pci_write/pci_read: PCI configuration byte access, see cpu/486/cache_as_ram.S. */
 
 
 #define pci_write(BDFR, REG_IMM)	\
@@ -99,19 +87,6 @@ _start:
 	call	gdt_init
 #endif
 
-	/* Debug, always built: "{" CR three times on COM1. */
-	mov	$'{', %al
-	send_uart
-	mov	$0xd, %al
-	send_uart
-	mov	$'{', %al
-	send_uart
-	mov	$0xd, %al
-	send_uart
-	mov	$'{', %al
-	send_uart
-	mov	$0xd, %al
-	send_uart
 
 #if ENV_X86_64
 	mov	%rdi, %rax
@@ -125,77 +100,6 @@ _start:
 #endif
 
 
-	/* Debug, always built (#if 1): sends raw little-endian dwords to
-	 * COM1: the current EIP (call/pop trick), ESP, the return address at
-	 * (%esp), _cbmem_top_ptr, then CR0 and CR0 & ~(CD|NW), each followed
-	 * by a CR (0x0d). send_uart clobbers EAX and DX only. */
-#if 1
-	call	1f
-1:
-	pop	%eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-
-
-	# # 01000000 = _cbmem_top_ptr
-	# send_uart
-	# shr	$0x8, %eax
-	# send_uart
-	# shr	$0x8, %eax
-	# send_uart
-	# shr	$0x8, %eax
-	# send_uart
- #
- #
-	# mov	$0xd, %al	//pc2005
-	# send_uart
-
-	# 04560f7c
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-	# [esp] = 000e05dc
-	mov	(%esp), %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-
-	# 01000000
-	mov	_cbmem_top_ptr, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-#endif
 
 /* Disabled: clflush does not exist on a 486 (and is not needed: with
  * CD = NW = 1 the write above already went to DRAM). */
@@ -220,37 +124,6 @@ _start:
 	# movl	%eax, %tr5
 
 
-#if 1
-	# CR0 val = 60000011 cd+nw
-	movl	%cr0, %eax
-
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-	mov	%cr0, %eax
-	andl	$(~(CR0_CD | CR0_NW)), %eax
-
-
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-#endif
 
 
 skip_clflush:
@@ -261,17 +134,6 @@ skip_clflush:
 
 	# invd
 
-	/* Debug, always built: "34567" on COM1. */
-	mov	$0x33, %al	//pc2005
-	send_uart
-	mov	$0x34, %al	//pc2005
-	send_uart
-	mov	$0x35, %al	//pc2005
-	send_uart
-	mov	$0x36, %al	//pc2005
-	send_uart
-	mov	$0x37, %al	//pc2005
-	send_uart
 
 
 	//fill L2 cache, twice as size?
@@ -351,72 +213,7 @@ skip_clflush:
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x50), %cl)
 #endif
 
-	/* Debug, always built: 'X' 0x0c 0x0b 0x0a on COM1. */
-	mov	$'X', %al	//pc2005
-	send_uart
-	mov	$0xc, %al	//pc2005
-	send_uart
-	mov	$0xb, %al	//pc2005
-	send_uart
-	mov	$0xa, %al	//pc2005
-	send_uart
 
-#if 0
-	# //01ff21a5
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-	call	test
-test:
-	pop	%eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-	shr $0x8, %eax
-	send_uart
-
-
-	mov	$0xa, %al	//pc2005
-	send_uart
-
-
-	# 02000000
-	mov	_cbmem_top_ptr, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-
-	# 01ff21a5
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-#endif
 
 	//NOTICE all levels of memory should be coherent by now
 
@@ -428,61 +225,6 @@ test:
 	/* Call this in assembly as some platforms like to mess with the bootflow and
 	   call into main directly from chipset_teardown_car. */
 	/* call	postcar_mtrr_setup */
-
-#if 0
-	# 01ff9410
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-#endif
-
-#if 0
-	//quick search debug block
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	rdtsc
-#endif
-
-#if 0
-
-	# 01ff93d0
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-
-	mov	$0xd, %al	//pc2005
-	send_uart
-	mov	$0xa, %al	//pc2005
-	send_uart
-
-	# 01ff93d0
-	mov	%esp, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-#endif
 
 	/* Call into main for postcar. */
 	/* (arch/486/postcar.c: console, cbmem, then run_ramstage()) */

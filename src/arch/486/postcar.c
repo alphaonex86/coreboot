@@ -20,7 +20,6 @@ void main(void)
 
 	console_init();
 
-printk(BIOS_DEBUG, "=+=+=+=+ postcar main %p\n", main);
 
 	/*
 	 * CBMEM needs to be recovered because timestamps rely on

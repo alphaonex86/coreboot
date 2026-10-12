@@ -126,28 +126,22 @@ void mainboard_romstage_entry(void)
 	pci_update_config8(HOST_BRIDGE, HB55_SHADOW_CFG, ~0x40, 0);
 
 	//copy ROME to shadowE
-	printk(BIOS_INFO, "TODO? fill shadow E\n");
 	//NOTICE when disabled, L2 will cause crashes ... may interference with L2 fill in a good way
 	memcpy((void*)0xe0000, (void*)0xfffe0000, 0x10000);
 
 	//copy ROMF to shadowF
-	printk(BIOS_INFO, "TODO? fill shadow F\n");
 	// memcpy((void*)0xf0000, (void*)0xffff0000, 0x10000);
 
 	//CSEG shadow
-	printk(BIOS_INFO, "++++ROM++++ segment C use RAM shadow\n");
 	pci_update_config8(HOST_BRIDGE, HB54_SHADOW_EN, ~0, 0xe);
 
 	//DSEG shadow
-	printk(BIOS_INFO, "++++ROM++++ segment D use RAM shadow\n");
 	pci_update_config8(HOST_BRIDGE, HB54_SHADOW_EN, ~0, 0xf0);
 
 	//segE shadow read
-	printk(BIOS_INFO, "++++ROM++++ segment E use RAM shadow\n");
 	pci_update_config8(HOST_BRIDGE, HB54_SHADOW_EN, ~0, 1);
 
 	//global + segF shadow read
-	printk(BIOS_INFO, "++++ROM++++ segment F use RAM shadow\n");
 	pci_update_config8(HOST_BRIDGE, HB55_SHADOW_CFG, ~0, 0x80);
 
 
@@ -155,7 +149,6 @@ void mainboard_romstage_entry(void)
 
 	//NOTICE NOTICE NOTICE NOTICE experiments
 	//set if pci video bios installed?
-	printk(BIOS_INFO, "Set if PCI VGA is used\n");
 	pci_update_config8(ISA_BRIDGE, IBC50_PCI_VIDEO, ~0, 0x80);
 
 	pci_update_config8(ISA_BRIDGE, IBC50_PCI_VIDEO, ~0, 1);

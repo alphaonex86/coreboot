@@ -160,7 +160,7 @@ int vprintk(int msg_level, const char *fmt, va_list args)
 	return i;
 }
 
-int printk(int msg_level, const char *fmt, ...)
+int (printk)(int msg_level, const char *fmt, ...)
 {
 	va_list args;
 	int i;

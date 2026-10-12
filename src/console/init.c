@@ -58,13 +58,6 @@ void console_init(void)
 		pci_early_bridge_init();
 
 
-	asm volatile(
-		"movb $'j', %%al\n\t"     // Move the character to AL register
-		"movw $0x3F8, %%dx\n\t" // Load 0x3F8 (COM1 port) into DX register
-		"outb %%al, %%dx"       // Send the character to COM1 port
-		:::
-	);
-
 	console_hw_init();
 
 	console_inited = 1;

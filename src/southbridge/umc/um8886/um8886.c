@@ -13,7 +13,6 @@
 static void um8886_init(void *chip_info)
 {
 	//NOTICE right after ramstage
-	printk(BIOS_DEBUG, "UMC IBC init, TODO\n");
 	//TODO which can be left to seabios?
 	isa_dma_init();
 	setup_i8259();

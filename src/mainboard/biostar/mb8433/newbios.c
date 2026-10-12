@@ -8,6 +8,8 @@
 
 #define __SIMPLE_DEVICE__
 
+#include <arch/cpu.h>
+#include <arch/io.h>
 #include <arch/pirq_routing.h>
 #include <console/console.h>
 #include <device/pci_ops.h>
@@ -95,6 +97,62 @@ void newbios_chipset_options(void)
 		return;
 	}
 	apply(chipset, ARRAY_SIZE(chipset));
+}
+
+/* Core clock in MHz: dec + taken jnz is 4 clocks on 486-class CPUs, timed with PIT channel 2. */
+static unsigned int cpu_mhz(void)
+{
+	u32 n = 200000;
+
+	outb((inb(0x61) & ~0x02) | 0x01, 0x61);
+	outb(0xb0, 0x43);
+	outb(0xff, 0x42);
+	outb(0xff, 0x42);
+	asm volatile("1: decl %0; jnz 1b" : "+r"(n));
+	outb(0x80, 0x43);
+	u32 ticks = 0xffff - (inb(0x42) | inb(0x42) << 8);
+	return ticks ? (954545 + ticks / 2) / ticks : 0;	/* 800000 clocks at 1.193182 MHz */
+}
+
+/* Core/bus clock ratio from the family and model (CPUID, else DX at reset); 1 if unknown, which
+   gives the slowest timings. No DX2 runs above 80 MHz: faster ones are DX4s with a DX2 ID. */
+static unsigned int cpu_multiplier(unsigned int mhz)
+{
+	u8 sig = cpu_have_cpuid() ? cpuid_eax(1) >> 4 : cmos_read(NB_CMOS_CPUSIG);
+
+	if (sig >> 4 != 4)
+		return 1;
+	switch (sig & 0x0f) {
+	case 3: case 5: case 7: return mhz > 85 ? 3 : 2;	/* DX2, SX2, DX2 write-back */
+	case 8: case 9: return 3;		/* DX4 */
+	case 14: case 15: return 4;		/* Am5x86 */
+	}
+	return 1;
+}
+
+/* Ramstage, code in DRAM with the caches on, so the clock can be measured: Auto Configuration
+   (or the unfinished-POST fallback) sets the original BIOS's timings for the bus clock, from its own
+   table (HB50/51, IBC56/A4 per bus clock class, verified in 86Box). */
+void newbios_auto_timings(void)
+{
+	static const struct { u8 bus_below, hb50, hb51, ibc56, ibca4; } rows[] = {
+		{ 29,  0x30, 0xf0, 0x00, 0x01 },	/* 16-25 MHz: L2 2-1-1-1, DRAM 0 WS, ISA PCICLK/3, PCI 1:1 */
+		{ 37,  0x10, 0xa0, 0x01, 0x01 },	/* 33 MHz: 3-1-1-1, 1 WS, PCICLK/4, 1:1 */
+		{ 45,  0x00, 0xa0, 0x00, 0x02 },	/* 40 MHz: 3-2-2-2, 1 WS, PCICLK/3, 1:2/3 */
+		{ 255, 0x00, 0x00, 0x00, 0x00 },	/* 50 MHz: 3-2-2-2, 3 WS, PCICLK/3, 1:1/2 */
+	};
+	unsigned int mhz = cpu_mhz(), bus = mhz / cpu_multiplier(mhz), i;
+
+	if (settings_valid() && !setting(NB_CHIPSET_AUTO)
+	    && cmos_read(NB_CMOS_BOOTFAIL) - 1 < NB_BOOTFAIL_MAX)
+		return;		/* the manual values of setup are in use */
+	for (i = 0; bus >= rows[i].bus_below; i++)
+		;
+	printk(BIOS_INFO, "newBIOS: %u MHz bus, auto chipset timings %u\n", bus, i);
+	pci_update_config8(HOST_BRIDGE, HB50_L2_CFG_0, ~0x30, rows[i].hb50);
+	pci_update_config8(HOST_BRIDGE, HB51_L2_CFG_1, ~0xf0, rows[i].hb51);
+	pci_update_config8(ISA_BRIDGE, IBC56_CLOCK, ~0x0f, rows[i].ibc56);
+	pci_update_config8(ISA_BRIDGE, IBCA4_CLOCK_RATIO, ~0x03, rows[i].ibca4);
 }
 
 /* Ramstage PIRQ routing: links INTA#-INTD# set in setup keep their IRQ. */

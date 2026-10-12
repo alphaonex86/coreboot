@@ -163,7 +163,6 @@ for (unsigned idx=0;idx<0x100;idx++) {
 #endif
 
 
-	printk(BIOS_NOTICE, "before ROM STAGE\n");
 
 	run_romstage();
 }

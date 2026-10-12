@@ -59,7 +59,6 @@ void __noreturn romstage_main(void)
 		printk(BIOS_DEBUG, "Smashed stack detected in romstage!\n");
 	}
 
-	printk(BIOS_DEBUG, "bef prepare postcar\n");
 
 	// if (CONFIG(SMM_TSEG))
 		// smm_list_regions();

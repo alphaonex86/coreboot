@@ -36,17 +36,12 @@ static void load_postcar_cbfs(struct prog *prog)
 		.prog = prog,
 	};
 
-	printk(BIOS_NOTICE, "load_postcar_cbfs {\n");
-
 	if (rmodule_stage_load(&rsl))
 		die_with_post_code(POST_INVALID_ROM,
 				   "Failed to load after CAR program.\n");
 
-	printk(BIOS_NOTICE, "S2\n");
-
 	stage_cache_add(STAGE_POSTCAR, prog);
 
-	printk(BIOS_NOTICE, "load_postcar_cbfs }\n");
 
 
 #if 0

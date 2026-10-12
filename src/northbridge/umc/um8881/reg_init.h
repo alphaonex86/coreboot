@@ -83,6 +83,7 @@ HB61=c4
 #include <device/pci_type.h>
 
 void newbios_chipset_options(void);
+void newbios_auto_timings(void);
 
 #define HOST_BRIDGE		PCI_DEV(0, 0x10, 0)
 #define ISA_BRIDGE		PCI_DEV(0, 0x12, 0)

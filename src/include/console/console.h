@@ -53,6 +53,9 @@ void console_init(void);
 int console_log_level(int msg_level);
 
 int printk(int msg_level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+/* 486: messages above the build log level are compiled out, to save ROM space. */
+#define printk(LEVEL, ...) \
+	((LEVEL) <= CONFIG_DEFAULT_CONSOLE_LOGLEVEL ? printk(LEVEL, __VA_ARGS__) : 0)
 int vprintk(int msg_level, const char *fmt, va_list args);
 
 void do_putchar(unsigned char byte);

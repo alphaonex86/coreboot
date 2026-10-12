@@ -138,7 +138,7 @@ config CBFS_PRELOAD
 	  perform the background transfer.
 
 config DECOMPRESS_OFAST
-	bool
+	bool "Compile the decompressors with -Ofast (faster, larger)"
 	depends on COMPILER_GCC
 	default y
 	help

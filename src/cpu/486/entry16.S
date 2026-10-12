@@ -45,16 +45,6 @@
 #include <cpu/486/post_code.h>
 
 
-/* Debug helper, only used in the disabled (#if 0) block below: send AL to
- * COM1 (0x3F8) and wait until the transmit holding register is empty
- * (bit 5 of the line status register 0x3FD). */
-#define send_uart		\
-	movw	$0x3f8, %dx;	\
-	outb	%al, %dx;	\
-1:	movw	$0x3fd, %dx;	\
-	inb	%dx, %al;	\
-	testb	$0x20, %al;	\
-	jz	1b
 
 
 
@@ -75,6 +65,21 @@ _start16bit:
 	/* (EAX = built-in self-test result after reset, 0 = pass; EBP is not
 	 * used for anything else until entry32.S.) */
 	movl	%eax, %ebp
+
+	/* Keep the CPU signature that DX holds after reset (bits 11-4: family
+	 * and model) in CMOS 7Fh, for the bus clock and the name of CPUs
+	 * without CPUID (newbios_cmos.h NB_CMOS_CPUSIG). Port 70h bit 7 (NMI
+	 * mask) is kept as read. Skipped if DX is 0. */
+	testw	%dx, %dx
+	jz	1f
+	inb	$0x70, %al
+	andb	$0x80, %al
+	orb	$0x7f, %al
+	outb	%al, $0x70
+	movw	%dx, %ax
+	shrw	$4, %ax
+	outb	%al, $0x71
+1:
 
 	/* With CONFIG_POST_IO each post_code(c) below writes c to port 80h
 	 * for a POST card (include/cpu/486/post_code.h, newBIOS/POSTCODES.md).
@@ -175,16 +180,6 @@ _start16bit:
 
 	post_code(POST_486_SOFT_RESET)
 
-#if 0
-	mov	%cr2, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-	shr	$0x8, %eax
-	send_uart
-#endif
 
 
 	/* Restore BIST to %eax */
@@ -278,28 +273,6 @@ no_soft_reset:
 
 	//pc2005 test CS
 	post_code(POST_486_PROTECTED_MODE)
-
-#if CONFIG(CONSOLE_SERIAL)
-	/* Debug ROM only: the two raw bytes of the CS selector (expected
-	 * 00 F0) sent to COM1. */
-	mov	%cs, %bx
-
-	movb	%bl, %al
-	movw	$0x3f8, %dx
-	outb	%al, %dx
-1:	movw	$0x3fd, %dx
-	inb	%dx, %al
-	testb	$0x20, %al
-	jz	1b
-
-	movb	%bh, %al
-	movw	$0x3f8, %dx
-	outb	%al, %dx
-1:	movw	$0x3fd, %dx
-	inb	%dx, %al
-	testb	$0x20, %al
-	jz	1b
-#endif
 
 	/* Restore BIST to %eax */
 	movl	%ebp, %eax

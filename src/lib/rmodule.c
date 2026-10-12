@@ -124,14 +124,10 @@ static void rmodule_copy_payload(const struct rmodule *module)
 	       module->location, rmodule_entry(module),
 	       module->payload_size, rmodule_memory_size(module));
 
-	printk(BIOS_DEBUG, "!!CP %p<-%p\n", module->location, module->payload);
-
 	/* No need to copy the payload if the load location and the
 	 * payload location are the same. */
-	if (module->location == module->payload) {
-		printk(BIOS_DEBUG, " skip same location\n");
+	if (module->location == module->payload)
 		return;
-	}
 
 	memcpy(module->location, module->payload, module->payload_size);
 }

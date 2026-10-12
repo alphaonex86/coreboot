@@ -3,6 +3,7 @@
 #include <console/console.h>
 #include <device/pci_ops.h>
 #include <arch/io.h>
+#include <northbridge/umc/um8881/reg_init.h>
 
 
 #define PORT_INDEX	0x108
@@ -47,6 +48,7 @@ static const struct umc_sio_cfg_entry sio_table[] = {
 static void mainboard_init(void *chip_info)
 {
 	printk(BIOS_DEBUG, "*** mainboard_init\n");
+	newbios_auto_timings();
 
 
 	//TODO into southbridge
@@ -87,23 +89,6 @@ c2: 81
 		//lock
 		outb(0x55, PORT_INDEX);
 	}
-
-#if 1
-	printk(BIOS_DEBUG, "SIO dump:\n");
-
-	for (unsigned idx=0;idx<ARRAY_SIZE(sio_table);idx++) {
-		//unlock
-		outb(0xaa, PORT_INDEX);
-
-		// must be written immediatelly
-
-		outb(sio_table[idx].idx, PORT_INDEX);
-		printk(BIOS_DEBUG, "%2hhx: %02hhx\n", sio_table[idx].idx, inb(PORT_DATA));
-
-		//lock
-		outb(0x55, PORT_INDEX);
-	}
-#endif
 
 }
 
