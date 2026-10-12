@@ -1,8 +1,32 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+/*
+ * Cache-as-RAM (CAR) for the 486, then the call into the bootblock C code.
+ *
+ * Until romstage has initialized the DRAM there is no RAM, but C code needs
+ * a stack and some writable data. The 486 L1 cache provides it:
+ *   1. make the CAR range (CONFIG_DCACHE_RAM_BASE, 8 KiB at 0x1A0000 in this
+ *      build) look like cacheable DRAM to the chipset (fake DRAM banks), so
+ *      the CPU may allocate cache lines for it (the chipset asserts KEN#);
+ *   2. enable the cache (CR0.CD = NW = 0) and read the whole range once:
+ *      every 16-byte line is filled into L1;
+ *   3. set CR0.CD = 1 and NW = 1. In that mode the 486 makes no new line
+ *      fills and no write-through: reads and writes that hit a cached line
+ *      stay inside the cache, everything else goes to the bus uncached.
+ *      The filled range is now 8 KiB of RAM inside the CPU, while code keeps
+ *      being fetched uncached from flash;
+ *   4. remove the fake banks, zero the range, point ESP into it and call
+ *      bootblock_c_entry_bist() (src/cpu/486/bootblock.c), never to return.
+ * The layout of the range (stack, pre-RAM console, timestamps, .bss) comes
+ * from car.ld. Postcar (arch/486/exit_car.S) leaves this mode again.
+ * Entered from entry32.S: 32-bit flat protected mode, EBP = BIST result.
+ */
+
 #include <cpu/486/post_code.h>
 #include <cpu/486/cache.h>
 
+/* PCI configuration address for mechanism #1 (port 0xCF8): enable bit 31,
+ * bus, device, function and register number. */
 #define UMC_PCI_BDFR(BUS, DEV, FN, REG) ( \
 	(1 << 31) | \
 	(((BUS) & 0xff) << 16) | \
@@ -11,6 +35,10 @@
 	(((REG)  & 0xff) << 0) \
 )
 
+/* Write one byte to PCI configuration space without a stack: address to
+ * 0xCF8, then the byte to 0xCFC + (register & 3). Clobbers EAX, DX.
+ * pci_read() is the same read; send_uart() writes AL to the UART and waits
+ * until it is sent. */
 #define pci_write(BDFR, REG_IMM)	\
 	movw	$0xcf8, %dx;	\
 	movl	$ BDFR, %eax;	\
@@ -49,6 +77,7 @@ https://elixir.bootlin.com/coreboot/4.20.1/source/src/commonlib/include/commonli
 */
 #include <cpu/intel/post_codes.h>
 
+/* CBFS_FILE_*: unused leftovers (offsets of a CBFS file header). */
 #define CBFS_FILE_MAGIC 0
 #define CBFS_FILE_LEN (CBFS_FILE_MAGIC + 8)
 #define CBFS_FILE_TYPE (CBFS_FILE_LEN + 4)
@@ -62,9 +91,12 @@ https://elixir.bootlin.com/coreboot/4.20.1/source/src/commonlib/include/commonli
 bootblock_pre_c_entry:
 
 cache_as_ram:
-	post_code(/*POST_BOOTBLOCK_CAR*/ '4')
+	post_code(POST_BOOTBLOCK_CAR)
 
 
+/* Disabled (#if 0): POKER, a tiny serial monitor for bring-up. A host sends
+ * 6-byte commands on COM1 to read/write memory, I/O ports and PCI registers
+ * and to switch the L1 cache before any C code runs. Not built. */
 #if 0
 # POKER POKER POKER POKER POKER POKER POKER POKER POKER
 # POKER POKER POKER POKER POKER POKER POKER POKER POKER
@@ -340,6 +372,11 @@ exit_poker:
 
 # set up L1 cacheable range (usually it means to define fake RAM area)
 
+/* The 486 allocates a cache line only when the chipset asserts KEN# for
+ * the access, and a chipset does that only for its (cacheable) DRAM. The
+ * blocks below make the CAR range part of the DRAM map. The DRAM content
+ * itself does not matter: only the line fills are needed. ALi M1489 is
+ * another board; this build uses the UMC UM8881 branch. */
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	/* ALI specific, NB will not generate /KEN in noncacheable regions, probably everything outside RAM */
 
@@ -409,9 +446,13 @@ pci_dump_loop:
 
 	/* define fake RAM 4x 32MB */
 	/* CONFIG_DCACHE_RAM_BASE must be in range to L1 able to work as CAR */
+	/* Host bridge (device 0x10) register 52h: bits 6-4 = upper region
+	 * capacity, bits 2-0 = lower region capacity; 7 is the largest code
+	 * (see ../um8881f-documentation-*.pdf). */
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x52), $0x77)
 
 	/* 2 double sided banks in both */
+	/* Register 53h bits 3-0: upper/lower region double sided, 2 banks. */
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x53), $0x0f)
 
 	/* TODO EXPERIMENTAL set L1 bit ??? */
@@ -429,6 +470,7 @@ pci_dump_loop:
 	*/
 
 	/* Enable cache (CR0.CD = 0, CR0.NW = 0) */
+	/* The invd right before empties L1, so no stale line is enabled. */
 	movl	%cr0, %eax
 	andl	$(~(CR0_CacheDisable | CR0_NoWriteThrough)), %eax
 	invd
@@ -440,7 +482,7 @@ pci_dump_loop:
 		read will fill L1
 	*/
 
-	post_code(/*POST_SOC_FILL_CACHE*/ '6')
+	post_code(POST_486_CAR_FILL)
 
 	/*
 	address is defined in CONFIG_DCACHE_RAM_BASE
@@ -449,6 +491,12 @@ pci_dump_loop:
 	*/
 
 	/* Fill cache lines */
+	/* rep lodsl = load ECX dwords from DS:ESI into EAX, ESI += 4 each
+	 * (DF = 0 after cld). The values are discarded: each read that misses
+	 * makes the CPU fill one 16-byte line. Afterwards the whole CAR range
+	 * (_car_region_start.._car_region_end from car.ld) is in L1. With an
+	 * 8 KiB L1 (486DX/DX2) that is the whole cache, with 16 KiB (DX4,
+	 * Am5x86) half of it. */
 	movl	$_car_region_start, %esi
 	movl	$_car_region_end, %ecx
 	sub	%esi, %ecx
@@ -456,16 +504,19 @@ pci_dump_loop:
 	cld
 	rep	lodsl	/* cld? DF=0 */
 
-	post_code(POST_SOC_DISABLE_CACHE)	/* '-' */
+	post_code(POST_486_CAR_LOCKED)
 
 	/* Enable Cache-as-RAM mode by disabling cache. */
+	/* CD = 1 and NW = 1: no more line fills, no write-through, hits are
+	 * still served by L1. The filled lines can no longer be evicted, so
+	 * they behave as 8 KiB of RAM. */
 	movl	%cr0, %eax
 	orl	$(CR0_CacheDisable | CR0_NoWriteThrough), %eax
 	movl	%eax, %cr0
 
 	/* NOW in cache as RAM */
 
-	post_code('A')
+	post_code(POST_486_CAR_DRAM_OFF)
 
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	/* disable L1 /ken generation in chipset */
@@ -476,12 +527,17 @@ pci_dump_loop:
 
 #elif CONFIG(NORTHBRIDGE_UMC_UM8881)
 	/* disable RAM (L1 CAR is now filled) */
+	/* Back to "no DRAM banks"; romstage sizes the real DRAM later. From
+	 * here an access outside the CAR range reads or writes nothing, so
+	 * stack and data must stay inside it. */
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x52), $0x00)
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x53), $0x00)
 #endif
 
 
 
+/* Disabled (#if 0): chipset register values copied from a Linux dump,
+ * kept for reference. Not built. */
 #if 0
 /*
 FORCE table
@@ -541,7 +597,7 @@ pci_write(UMC_PCI_BDFR(0, 0x12, 0, 0xa8), $0x28)
 #endif
 
 
-post_code('D')
+post_code(POST_486_CAR_CLEAR)
 
 
 #if 0	/* ========================= PCI DUMP ================ */
@@ -572,6 +628,8 @@ pci_dump_loop2:
 	*/
 
 	/* Clear the cache memory region. There should not be any traffic to RAM */
+	/* rep stosl = store EAX (0) to ECX dwords at ES:EDI, upwards. This
+	 * also zeroes the bootblock .bss, which car.ld puts inside CAR. */
 	movl	$_car_region_start, %edi
 	movl	$_car_region_end, %ecx
 	sub	%edi, %ecx
@@ -583,12 +641,17 @@ pci_dump_loop2:
 	cld
 	rep	stosl	/* cld? DF=0 */
 
-	post_code(/*POST_BOOTBLOCK_BEFORE_C_ENTRY*/ 'X')
+	post_code(POST_486_CAR_STACK)
 
 	//NOTICE _ecar_stack moved lower in linker script
+	/* _ecar_stack = top of the car_stack region (car.ld). The stack is
+	 * the bottom 4 KiB of CAR (0x1A0000-0x1A1000 in this build) and grows
+	 * down towards _car_region_start; nothing detects an overflow. */
 	movl	$_ecar_stack, %esp
 
 	/* Align the stack and keep aligned for call to bootblock_c_entry() */
+	/* 16-byte aligned, minus 4, minus the 3 pushes below (12) = 16-byte
+	 * aligned again at the call, as the i386 ABI of gcc expects. */
 	and	$0xfffffff0, %esp	/*lower 4 bits always 0*/
 	sub	$4, %esp		/*== push 4 bytes*/
 
@@ -600,6 +663,9 @@ pci_dump_loop2:
 		can be compressed to eax (BIST != 0 failed -> halt)
 	*/
 
+	/* Arguments of bootblock_c_entry_bist(uint64_t base_timestamp,
+	 * uint32_t bist), pushed right to left: bist, then the 64-bit
+	 * timestamp as high dword and low dword. */
 	pushl	%ebp
 
 	/* Dummy timestamp - not implemented on 486 */
@@ -608,7 +674,6 @@ pci_dump_loop2:
 
 
 	//10:08000ff0
-	post_code('{')
 
 #if 0
 	mov	%ss,%ax
@@ -653,7 +718,6 @@ test:
 #endif
 
 
-	post_code('}')
 
 #if 0
 	//quick search debug block
@@ -673,12 +737,17 @@ test:
 	#endif
 
 /* before_c_entry: */
+	/* C from here: src/cpu/486/bootblock.c -> bootblock_main_with_basetime()
+	 * -> early chipset init, CBFS lookup, jump to romstage. */
 	call	bootblock_c_entry_bist
 	/* Never returns */
+	/* Safety net: print 'H' and halt forever. */
 .Lhlt:
-	post_code(/*POST_DEAD_CODE*/ 'H')
+	post_code(POST_DEAD_CODE)
 	hlt
 	jmp	.Lhlt
 
+/* Unused leftover string (cpu/qemu-x86 uses it to load a "pagetables"
+ * CBFS file); it only costs 11 bytes of flash. */
 pagetables_name:
 	.string "pagetables"

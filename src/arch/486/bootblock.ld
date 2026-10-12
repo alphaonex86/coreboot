@@ -1,5 +1,20 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+/*
+ * Layout of the bootblock at the top of the 4 GiB address space, which the
+ * chipset maps to the top of the flash. Included at the end of
+ * memlayout.ld (C-preprocessed, CONFIG() and #if work here). From the top:
+ *   0xFFFFFFFC  .header_pointer  CBFS master header pointer (4 bytes)
+ *   0xFFFFFFF0  .reset           reset vector jump (reset16.S), zero padded
+ *   below       .id              board identification strings (id.S)
+ *   below       .init            assembly: entry16.S first (.init._start),
+ *                                then the ROM GDT, cache_as_ram.S, entry32.S
+ *   below       .text etc.       bootblock C code (program.ld)
+ * The 16-bit code in entry16.S cannot compute 32-bit addresses, so the
+ * linker provides the low 16 bits of the descriptor-table images as
+ * gdtptr_offset and nullidt_offset (see entry16.S).
+ */
+
 gdtptr_offset = gdtptr & 0xffff;
 nullidt_offset = nullidt & 0xffff;
 
@@ -31,6 +46,9 @@ SECTIONS {
 	 */
 	PROGRAM_SZ = SIZEOF(.text) + 512;
 
+	/* The sizes used here (PROGRAM_SZ, EARLYASM_SZ, _ID_SECTION) are
+	 * defined further down from SIZEOF(); ld resolves the forward
+	 * references. ECFW and FIT pointers are empty on this board. */
 	. = MIN(_ECFW_PTR, MIN(_ID_SECTION, _FIT_POINTER)) - EARLYASM_SZ;
 	. = CONFIG(SIPI_VECTOR_IN_ROM) ? ALIGN(4096) : ALIGN(16);
 	BOOTBLOCK_TOP = .;
@@ -86,6 +104,7 @@ SECTIONS {
 	. = 0xfffffff0;
 #endif
 	_X86_RESET_VECTOR = .;
+	/* The 5-byte jump of reset16.S, then zeros up to the header pointer. */
 	.reset . : {
 		*(.reset);
 		. = _X86_RESET_VECTOR_FILLING;

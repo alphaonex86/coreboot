@@ -1,5 +1,5 @@
-ramstage-y += vtxprintf.c printk.c vsprintf.c
-ramstage-y += init.c console.c
+ramstage-y += vtxprintf.c vsprintf.c
+ramstage-$(CONFIG_CONSOLE_SERIAL) += printk.c init.c console.c
 ramstage-y += post.c
 ramstage-y += die.c
 ifeq ($(CONFIG_HWBASE_DEBUG_CB),y)
@@ -22,8 +22,8 @@ verstage-y += die.c
 verstage-y += init.c
 verstage-y += vtxprintf.c vsprintf.c
 
-romstage-y += vtxprintf.c printk.c vsprintf.c
-romstage-y += init.c console.c
+romstage-y += vtxprintf.c vsprintf.c
+romstage-$(CONFIG_CONSOLE_SERIAL) += printk.c init.c console.c
 romstage-y += post.c
 romstage-y += die.c
 

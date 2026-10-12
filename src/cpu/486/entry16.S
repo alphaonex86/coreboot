@@ -27,10 +27,27 @@
 /* Start code to put an i386 or later processor into 32-bit protected mode.
  */
 
+/*
+ * Boot flow: reset16.S (reset vector) jumps here, in real mode, running in
+ * place from flash at 0xFFFFxxxx. This code:
+ *   1. saves the BIST result, sets up COM1 for the POST characters,
+ *   2. flushes the TLB and the L1 cache,
+ *   3. on a CPU-only reset with the chipset still configured, hands the
+ *      reset to SeaBIOS in shadow RAM (far jump to F000:FFF0),
+ *   4. otherwise loads an empty IDT and the ROM GDT (gdt_init.S), sets
+ *      CR0.PE and far-jumps to bootblock_protected_mode_entry (entry32.S),
+ *      which runs in 32-bit protected mode.
+ * Register use: EBP keeps the BIST result (EAX at reset) until entry32.S;
+ * DX/AL are scratch for port I/O.
+ */
+
 #include <arch/rom_segs.h>
 #include <cpu/486/post_code.h>
 
 
+/* Debug helper, only used in the disabled (#if 0) block below: send AL to
+ * COM1 (0x3F8) and wait until the transmit holding register is empty
+ * (bit 5 of the line status register 0x3FD). */
 #define send_uart		\
 	movw	$0x3f8, %dx;	\
 	outb	%al, %dx;	\
@@ -51,12 +68,19 @@
 .type _start16bit, @function
 
 _start16bit:
+	/* Real mode, 16-bit code. Interrupts stay off until the OS: nothing
+	 * could handle them yet. */
 	cli
 	/* Save the BIST result */
+	/* (EAX = built-in self-test result after reset, 0 = pass; EBP is not
+	 * used for anything else until entry32.S.) */
 	movl	%eax, %ebp
 
+	/* With CONFIG_POST_IO each post_code(c) below writes c to port 80h
+	 * for a POST card (include/cpu/486/post_code.h, newBIOS/POSTCODES.md).
+	 * post_init is empty (it used to set up COM1 for them). */
 	post_init
-	post_code(/*POST_RESET_VECTOR_CORRECT*/ 's')
+	post_code(POST_RESET_VECTOR_CORRECT)
 
 	/* IMMEDIATELY invalidate the translation lookaside buffer (TLB) before
 	 * executing any further code. Even though paging is disabled we
@@ -77,17 +101,27 @@ _start16bit:
 	 */
 
 	 //486 is not a modern processor :-D
+	 /* invd drops every L1 line without writing it back. */
 	 invd
 
 	/* check if chipset is configured
 	 * = segment E/F is shadowed in RAM -> contains seabios -> jump there
 	 */
+	/* A CPU-only reset (port 92h fast reset, keyboard controller reset,
+	 * triple fault) does not reset the chipset. If the E and F segments
+	 * are still read from shadow RAM, SeaBIOS is loaded there and can
+	 * handle the reset itself (CMOS shutdown code, e.g. the 286-style
+	 * return from protected mode), so coreboot is skipped. */
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	//TODO
 #elif CONFIG(NORTHBRIDGE_UMC_UM8881)
 	//if 0x54 and 0x55 has shadow set -> guess the chipset is configured
 	//NOTICE cannot check ram size register, minimum RAM is defined at power on
 
+	/* PCI configuration read, mechanism #1: write the address
+	 * (bit 31 enable | bus 0 | device 0x10 | function 0 | register 0x54,
+	 * the UM8881 host bridge) to port 0xCF8, then read the byte at
+	 * 0xCFC + (register & 3). */
 	movw	$0xcf8, %dx
 	movl	$0x80008054, %eax	//BDFR: 0:0x10:0
 	outl	%eax, %dx
@@ -96,9 +130,12 @@ _start16bit:
 	add	%al, %dl
 	inb	%dx, %al
 
+	/* Register 54h bit 0: E0000-EFFFF read from shadow RAM. */
 	test	$0x01, %al
 	jz	no_soft_reset	/* segment E not shadowed */
 
+	/* Same read for register 55h; bit 7 = global shadow read enable,
+	 * which also selects RAM for F0000-FFFFF. */
 	movw	$0xcf8, %dx
 	movl	$0x80008055, %eax	//BDFR: 0:0x10:0
 	outl	%eax, %dx
@@ -113,6 +150,9 @@ _start16bit:
 
 #if 1
 	//read register 0xf of RTC
+	/* CMOS byte 0Fh = shutdown status, set by software before a CPU
+	 * reset. Port 70h selects the CMOS register; its bit 7 masks NMI
+	 * and is kept as read. 0 = normal reset: do the full coreboot boot. */
 	inb	$0x70, %al
 	and	$0x80, %al
 	or	$0xf, %al
@@ -133,7 +173,7 @@ _start16bit:
 	//chipset is configured -> soft reset (CPU only reset)
 	//jump to shadow (seabios or other payload??)
 
-	post_code(/*POST_RESET_VECTOR_CORRECT*/ 'W')
+	post_code(POST_486_SOFT_RESET)
 
 #if 0
 	mov	%cr2, %eax
@@ -152,6 +192,9 @@ _start16bit:
 
 	//TODO restore EDX?
 
+	/* Real-mode far jump to F000:FFF0 = physical 0xFFFF0, which now
+	 * reads shadow RAM: the SeaBIOS reset_vector (romlayout.S) ->
+	 * entry_post -> entry_resume, as if the CPU had reset there. */
 	ljmpl	$0xf000, $0xfff0
 
 no_soft_reset:
@@ -198,26 +241,47 @@ no_soft_reset:
 	 * See IA32 manual Vol 3A 19.26 Interrupts.
 	 */
 
+	/* BX = offset of the descriptor-table image from the CS base.
+	 * bootblock.ld defines nullidt_offset/gdtptr_offset as the low 16
+	 * bits of the linked addresses (0xFFFFFExx). At reset CS = 0xF000 and
+	 * (CS << 4) truncated to 16 bits is 0, so BX is the offset itself and
+	 * %cs:(%bx) reads 0xFFFF0000 + offset, i.e. the flash. */
 	movw	%cs, %ax
 	shlw	$4, %ax
 	movw	$nullidt_offset, %bx
 	subw	%ax, %bx
+	/* IDTR := limit 0: no interrupt or exception can be delivered in
+	 * protected mode; one would triple-fault (CPU shutdown cycle).
+	 * It stays so in romstage and postcar; ramstage loads
+	 * a real IDT (idt.S, exception.c). */
 	lidt	%cs:(%bx)
 	movw	$gdtptr_offset, %bx
 	subw	%ax, %bx
+	/* GDTR := gdtptr (gdt_init.S). The "l" suffix (32-bit operand size)
+	 * is required: the 16-bit form loads only 24 bits of the base and
+	 * would miss 0xFFFFFExx. */
 	lgdtl	%cs:(%bx)
 
-	post_code('T')
+	post_code(POST_486_GDT)
 
+	/* Enter protected mode: PE = 1. CD = NW = 1 keep the L1 cache
+	 * disabled (cache_as_ram.S enables it). Paging, alignment check,
+	 * write protect, task switched and FPU emulation are cleared; NE = 0
+	 * reports FPU errors through IRQ13 as on a PC. */
 	movl	%cr0, %eax
 	andl	$0x7FFAFFD1, %eax /* PG,AM,WP,NE,TS,EM,MP = 0 */
 	orl	$0x60000001, %eax /* CD, NW, PE = 1 */
 	movl	%eax, %cr0
 
-	//pc2005 test CS
-	post_code('A')
-	post_code('{')
+	/* Now in 16-bit protected mode: CS keeps its hidden real-mode
+	 * descriptor (base 0xFFFF0000) until the far jump below reloads it. */
 
+	//pc2005 test CS
+	post_code(POST_486_PROTECTED_MODE)
+
+#if CONFIG(CONSOLE_SERIAL)
+	/* Debug ROM only: the two raw bytes of the CS selector (expected
+	 * 00 F0) sent to COM1. */
 	mov	%cs, %bx
 
 	movb	%bl, %al
@@ -235,8 +299,7 @@ no_soft_reset:
 	inb	%dx, %al
 	testb	$0x20, %al
 	jz	1b
-
-	post_code('}')
+#endif
 
 	/* Restore BIST to %eax */
 	movl	%ebp, %eax
@@ -250,15 +313,22 @@ no_soft_reset:
 
 
 	/* Now that we are in protected mode jump to a 32 bit code segment. */
+	/* Far jump with a 32-bit offset: CS := selector 0x08 (flat 4 GiB
+	 * 32-bit code), EIP := bootblock_protected_mode_entry (entry32.S).
+	 * This also flushes the prefetch queue. */
 	ljmpl	$ROM_CODE_SEG, $bootblock_protected_mode_entry
 
 	/**
 	 * The gdt is defined in gdt_init.S, it has a 4 Gb code segment
 	 * at 0x08, and a 4 GB data segment at 0x10;
 	 */
+	/* __gdtptr is an unused leftover: nothing references it (the lgdtl
+	 * above uses gdtptr_offset). */
 __gdtptr:
 	.long	gdtptr
 
+/* IDTR image for the lidt above: 16-bit limit 0, 32-bit base 0, then 2
+ * bytes of padding. */
 .align	4
 .globl nullidt
 nullidt:

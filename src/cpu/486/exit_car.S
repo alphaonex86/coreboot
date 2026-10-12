@@ -14,6 +14,15 @@
 	jz	1b
 
 
+/*
+ * chipset_teardown_car(): leave cache-as-RAM (see cache_as_ram.S) by
+ * disabling the cache, then return to the caller.
+ *
+ * NOT IN THE ROM: the only caller, _start in arch/486/exit_car.S, has the
+ * call commented out, and the linker drops this unreferenced .text
+ * (postcar.map lists it under "Discarded input sections"). Postcar
+ * leaves CAR inline in arch/486/exit_car.S instead.
+ */
 .global chipset_teardown_car
 
 .code32
@@ -35,6 +44,8 @@ chipset_teardown_car:
 #endif
 
 
+	/* The stack lives in CAR and is about to disappear: pop the return
+	 * address into ESP itself (no memory needed) and jump to it below. */
 	pop %esp
 
 	post_code(POST_POSTCAR_DISABLE_CACHE)	/*'0'*/
@@ -102,4 +113,6 @@ test:
 
 
 	/* Return to caller. */
+	/* ESP still holds the return address, not a stack: the caller must
+	 * load a new ESP before it uses the stack. */
 	jmp	*%esp

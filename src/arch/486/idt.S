@@ -1,5 +1,20 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+/*
+ * CPU exception entry stubs for ramstage (CONFIG_IDT_IN_EVERY_STAGE is off,
+ * so earlier stages run with the empty IDT from entry16.S).
+ * exception_init() in exception.c builds a 20-entry IDT of interrupt gates
+ * pointing to vec0..vec19 and loads it with lidt. On an exception the CPU
+ * pushes EFLAGS, CS, EIP (no stack switch: everything runs in ring 0) and,
+ * for vectors 8, 10-14 and 17 only, an error code. Each stub pushes a dummy
+ * error code where the CPU does not, then the vector number, so that the
+ * frame always has the same layout, and jumps to int_hand.
+ * int_hand saves the registers as a struct eregs and calls the C function
+ * x86_exception(struct eregs *): it dumps the registers and halts, except
+ * for debug-register breakpoints (vector 1, see breakpoint.c and
+ * null_breakpoint.c), which return here and resume with iret.
+ */
+
 	.section ".text._idt", "ax", @progbits
 #if ENV_X86_64
 	.code64
@@ -179,11 +194,16 @@ int_hand:
 	 * 12(%esp) cs
 	 * 16(%esp) eflags
 	 */
+	/* Build struct eregs (arch/486/include/arch/registers.h) downwards:
+	 * after these 8 pushes the stack holds, from ESP upwards, eax ecx edx
+	 * ebx esp ebp esi edi vector error_code eip cs eflags. */
 	pushl	%edi
 	pushl	%esi
 	pushl	%ebp
 
 	/* Original stack pointer */
+	/* (32 = 3 pushes above + vector, error code, eip, cs, eflags: the
+	 * ESP value before the exception) */
 	leal	32(%esp), %ebp
 	pushl	%ebp
 	pushl	%ebx
@@ -200,6 +220,8 @@ int_hand:
 	sub	$12, %esp
 	pushl	%ebp	/* Pointer to structure on the stack */
 	call	x86_exception
+	/* The argument slot still holds the eregs pointer: popping it into
+	 * ESP undoes both the argument push and the alignment. */
 	pop	%esp	/* Unwind the stack alignment and argument passing. */
 
 	popl	%eax
@@ -212,5 +234,7 @@ int_hand:
 	popl	%edi
 
 	addl	$8, %esp /* pop of the vector and error code */
+	/* iret pops EIP, CS, EFLAGS: resume the interrupted code (with the
+	 * register values x86_exception may have changed in eregs). */
 	iret
 #endif

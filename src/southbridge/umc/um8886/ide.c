@@ -52,8 +52,8 @@ static const struct umc_cfg_entry ide_table[] = {
 	// {0x04, 0xff, 0x0f},	//enable PCI comm
 
 	{0x40, 0xff, 0x00},
-	//primary and secondary TODO check if sec IO disappear in linux
-	{0x41, 0xff, 0x80 /*| 0x40*/ | 0xd},
+	//primary and secondary channels, like the original BIOS
+	{0x41, 0xff, 0x80 | 0x40 | 0xd},
 	{0x42, 0xff, 0x33},
 
 	//NOTICE this won't boot .. check!!!!

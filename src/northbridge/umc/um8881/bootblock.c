@@ -12,10 +12,6 @@
 
 void bootblock_early_northbridge_init(void)
 {
-	post_code('U');
-	post_code('M');
-	post_code('C');
-
 	//enable segment E
 	pci_update_config8(ISA_BRIDGE, IBC57_ROM_DECODE, ~0, 0x20);
 

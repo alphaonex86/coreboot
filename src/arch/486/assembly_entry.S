@@ -19,10 +19,17 @@
 .code32
 #endif
 
+/*
+ * Romstage entry point. The bootblock jumps here through prog_run() and
+ * never gets control back. State: 32-bit flat protected mode, cache-as-RAM
+ * active, no IDT, code running in place from flash (cbfstool relocated
+ * romstage to its CBFS address in the ROM).
+ */
 .section ".text._start", "ax", @progbits
 .global _start
 _start:
 	/* Migrate GDT to this text segment */
+	/* (load GDTR with romstage's own copy of the ROM GDT, gdt_init.S) */
 #if ENV_X86_64
 	call	gdt_init64
 #else
@@ -31,9 +38,12 @@ _start:
 
 /*rdtsc*/
 	/* reset stack pointer to CAR/EARLYRAM stack */
+	/* (top of the CAR stack again: the bootblock frames are dead) */
 	mov	$_STACK_TOP, %esp
 
 	/* clear .bss section as it is not shared */
+	/* (car.ld puts this stage's .bss in CAR at _bss.._ebss; rep stosl
+	 * stores EAX = 0 to ECX dwords at ES:EDI) */
 #if ENV_SEPARATE_BSS
 	cld
 	xor	%eax, %eax
@@ -55,6 +65,7 @@ debug_spinloop:
 	jz	debug_spinloop
 #endif
 
+	/* 16-byte stack alignment for the C code. */
 	andl	$0xfffffff0, %esp
 #if CONFIG(IDT_IN_EVERY_STAGE)
 	call	exception_init
@@ -63,6 +74,8 @@ debug_spinloop:
 #if CONFIG(ASAN_IN_ROMSTAGE)
 	call	asan_init
 #endif
+	/* C: arch/486/romstage.c -> romstage_main(): DRAM and chipset init,
+	 * then postcar is loaded into RAM and run. */
 	call	car_stage_entry
 
 	/* Expect to never return. */

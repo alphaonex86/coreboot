@@ -18,9 +18,8 @@ void pirq_assign_irqs(const unsigned char route[CONFIG_MAX_PIRQ_LINKS])
 	// printk(BIOS_DEBUG, "PIRQ assign R[2]=%x\n", route[2]);
 	// printk(BIOS_DEBUG, "PIRQ assign R[3]=%x\n", route[3]);
 
-	struct device * const  pdev = dev_find_device(
-		PCI_VID_UMC, PCI_DID_UMC_UM8886A, 0
-	);
+	/* Found by location: the IBC reports 886a or 888a (both "UM8886A") */
+	struct device * const  pdev = pcidev_on_root(0x12, 0);
 	if (!pdev) {
 		printk(BIOS_ERR, "UMC IBC not found, cannot assign PIRQ!\n");
 		return;

@@ -115,6 +115,11 @@ static u8 pirq_get_next_free_irq(u8 *pirq, u16 bitmap)
 	return irq;
 }
 
+/* Links with an IRQ already chosen (e.g. in a setup utility); 0 = route automatically. */
+void __weak mainboard_pirq_preset(unsigned char *pirq)
+{
+}
+
 static void pirq_route_irqs(unsigned long addr)
 {
 	int i, intx, num_entries;
@@ -123,6 +128,7 @@ static void pirq_route_irqs(unsigned long addr)
 	struct irq_routing_table *pirq_tbl;
 
 	memset(pirq, 0, CONFIG_MAX_PIRQ_LINKS);
+	mainboard_pirq_preset(pirq);
 
 	pirq_tbl = (struct irq_routing_table *)(addr);
 	num_entries = (pirq_tbl->size - 32) / 16;

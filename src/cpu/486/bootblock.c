@@ -8,6 +8,7 @@
 #include <bootblock_common.h>
 #include <console/console.h>
 #include <cpu/486/bist.h>
+#include <cpu/486/newbios_post.h>
 
 void __weak bootblock_early_northbridge_init(void) { }
 void __weak bootblock_early_southbridge_init(void) { }
@@ -22,13 +23,13 @@ void bootblock_early_cpu_init(void)
 
 void bootblock_soc_early_init(void)
 {
-	post_code('E');
+	post_code(POST_486_EARLY_NORTHBRIDGE);
 	bootblock_early_northbridge_init();
-	post_code('F');
+	post_code(POST_486_EARLY_SOUTHBRIDGE);
 	bootblock_early_southbridge_init();
-	post_code('G');
+	post_code(POST_486_EARLY_CPU);
 	bootblock_early_cpu_init();
-	post_code('H');
+	post_code(POST_486_LOAD_ROMSTAGE);
 }
 
 
@@ -43,7 +44,7 @@ asmlinkage void bootblock_c_entry_bist(uint64_t base_timestamp, uint32_t bist)
 	);
 #endif
 
-	post_code('C');
+	post_code(POST_486_BOOTBLOCK_C);
 
 	/* Halt if there was a built in self test failure */
 	if (bist) {
@@ -52,7 +53,7 @@ asmlinkage void bootblock_c_entry_bist(uint64_t base_timestamp, uint32_t bist)
 		report_bist_failure(bist);
 	}
 
-	post_code('I');
+	post_code(POST_486_BIST_OK);
 
 	// asm volatile(
 	// 	"mov %0, %%al\n\t"     // Move the character to AL register

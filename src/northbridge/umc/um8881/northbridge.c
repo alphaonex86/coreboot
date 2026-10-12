@@ -269,8 +269,8 @@ void mp_init_cpus(struct bus *cpu_bus)
 
 	//TODO make seg E/F shadow+writeable ?
 
-	//no cacheable bios
-	pci_update_config8(HOST_BRIDGE, HB55_SHADOW_CFG, ~0x3f, 0);
+	//no cacheable bios, but System (bit 5) and Video (bit 0) BIOS Cacheable stay as set up in romstage
+	pci_update_config8(HOST_BRIDGE, HB55_SHADOW_CFG, ~0x1e, 0);
 
 	//CSEG shadow
 	// printk(BIOS_INFO, "++++RAM++++ segment Call use RAM shadow\n");

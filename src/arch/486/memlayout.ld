@@ -1,5 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+/*
+ * Top-level linker script of every 486 stage (CONFIG_MEMLAYOUT_LD_FILE).
+ * The build runs it through the C preprocessor once per stage (ENV_* come
+ * from rules.h and -D__BOOTBLOCK__ etc.); the REGION/RAMSTAGE/... macros
+ * are in include/memlayout.h, and each macro pulls in lib/program.ld for
+ * the stage sections. header.ld sets ENTRY(_start).
+ * Postcar and ramstage are rmodules: relocated at load time, so their link
+ * address (8M) is not where they run.
+ */
 #include <memlayout.h>
 #include <arch/header.ld>
 

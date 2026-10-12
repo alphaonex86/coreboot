@@ -5,7 +5,8 @@
 
 // #define IRQ_MASK 0xdef8
 //e.g. uart init dislike being on the same IRQ as PCI (uart IRQ will be disabled in probe)
-#define IRQ_MASK 0x8e00
+//IRQ 9-11 like the original BIOS's pool: 12 stays for a PS/2 mouse, 14/15 for the IDE channels
+#define IRQ_MASK 0x0e00
 
 static const struct irq_routing_table mb8433_irq_routing_table = {
 	PIRQ_SIGNATURE,

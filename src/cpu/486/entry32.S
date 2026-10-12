@@ -25,14 +25,23 @@
  */
 	.align	4
 
+/*
+ * Entered from entry16.S by "ljmpl $ROM_CODE_SEG": 32-bit protected mode,
+ * CS = 0x08 (flat 4 GiB code from gdt_init.S), paging off, L1 cache off,
+ * interrupts off, no stack yet, EAX = BIST result. Still running in place
+ * from flash. Exit: jump to bootblock_pre_c_entry (cache_as_ram.S).
+ */
 .globl bootblock_protected_mode_entry
 bootblock_protected_mode_entry:
 
 	/* Save the BIST value */
 	movl	%eax, %ebp
 
-	post_code(/*POST_ENTER_PROTECTED_MODE*/ '3')
+	post_code(POST_ENTER_PROTECTED_MODE)
 
+	/* DS/ES/SS := 0x10, the flat 4 GiB data segment (base 0): from now
+	 * on an address is the physical address. FS/GS get the null
+	 * selector, which is legal as long as they are not used. */
 	movw	$ROM_DATA_SEG, %ax
 	movw	%ax, %ds
 	movw	%ax, %es
@@ -55,6 +64,8 @@ debug_spinloop:
 #endif
 
 
+/* Disabled: early TSC timestamp kept in MMX registers. A 486 has neither
+ * MMX nor a time stamp counter. */
 #if 0
 #if !CONFIG(USE_MARCH_586 || USE_MARCH_486)
 	/* MMX registers required here */

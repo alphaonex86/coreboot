@@ -4,6 +4,16 @@
 #include <memlayout.h>
 
 /* This file is included inside a SECTIONS block */
+
+/*
+ * Cache-as-RAM layout (see cpu/486/cache_as_ram.S), shared by bootblock and
+ * romstage so that the console and timestamps keep their addresses. NOLOAD:
+ * nothing is stored in the ROM, the region only exists in L1 at run time.
+ * In this build (bootblock.map): car_stack 0x1A0000-0x1A1000, pre-RAM cbmem
+ * console 0x1A1000-0x1A1C00, timestamps 0x1A1C00-0x1A1E00, EHCI debug info,
+ * then the per-stage .bss, end of CAR 0x1A2000. The stack grows down from
+ * _ecar_stack towards _car_region_start.
+ */
 . = CONFIG_DCACHE_RAM_BASE;
 .car.data . (NOLOAD) : {
 	_car_region_start = . ;
@@ -87,6 +97,8 @@
  * This section is checked during stage creation to ensure
  * that there are no global variables present
  */
+/* (Initialized .data cannot work in a stage that runs from flash: the
+ * build fails if anything lands in .illegal_globals.) */
 
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 . = 0x000fff00;

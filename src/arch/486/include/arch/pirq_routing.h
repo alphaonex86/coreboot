@@ -45,5 +45,6 @@ unsigned long copy_pirq_routing_table(unsigned long addr,
 unsigned long write_pirq_routing_table(unsigned long start);
 
 void pirq_assign_irqs(const unsigned char pirq[CONFIG_MAX_PIRQ_LINKS]);
+void mainboard_pirq_preset(unsigned char *pirq);
 
 #endif /* ARCH_PIRQ_ROUTING_H */
