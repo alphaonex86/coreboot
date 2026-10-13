@@ -11,8 +11,11 @@
 #include <arch/io.h>
 #include <device/pci_ops.h>
 #include <cbmem.h>
+#include <commonlib/helpers.h>
 
 #include "reg_init.h"
+#include <pc80/mc146818rtc.h>
+#include <mainboard/biostar/mb8433/newbios_cmos.h>
 
 void dram_init(void);
 void l2_cache_init(void);
@@ -389,6 +392,13 @@ void unify_banks_to_region(
 		result->two_banks = false;
 		result->use_upper = true;
 		result->require_ma11 = (upper->rows == 12)?true:false;
+	} else if (result_size > 128*MiB) {
+		// a region holds at most 128 MiB: use the lower bank alone
+		result->totalsize_reg_val = bank_size_to_region_size(lower_size_original);
+		result->double_sided = lower->double_sided;
+		result->two_banks = false;
+		result->use_upper = false;
+		result->require_ma11 = (lower->rows == 12)?true:false;
 	} else {
 // printk(BIOS_DEBUG, "use combined banks\n");
 
@@ -523,28 +533,11 @@ void l2_cache_init(void)
 	//disable forced hit
 	pci_update_config8(HOST_BRIDGE, HB5A_MISC_0, ~0x40, 0);
 
-	if (cache_size > 0) {
-		//if L2 cache enabled, initialize (random poweron data)
-
-// //experimental
-// pci_update_config8(HOST_BRIDGE, HB5A_MISC_0, ~0, 0x40);
-
-		printk(BIOS_DEBUG, "Init L2 to be coherent with RAM: ");
-
-#if 0
-		//read twice L2 size
-		for (uintptr_t addr = 0x200000; addr < 0x200000 + cache_size*2; addr+=4) {
-			if ((addr % 0x10000) == 0) {
-				printk(BIOS_DEBUG, "%6lx ", addr);
-			}
-
-			read32p(addr);
-			// write32p(addr, addr);
-		}
-		printk(BIOS_DEBUG, "\n");
-#endif
-
-	}
+	//the size is handed to SeaBIOS, which makes the tags valid and enables it at POST like the original
+	//BIOS; until then 50h is 0 (with only bit 7 off, or enabled under cache-as-RAM, the real board crashed)
+	u8 l2_cmos = cmos_read(NB_CMOS_L2);	//bits 7, 6-4: a SeaBIOS L2 init that did not finish, its step
+	cmos_write((l2_cmos & 0x80 ? l2_cmos & 0xf0 : 0) | (pci_read_config8(HOST_BRIDGE, HB50_L2_CFG_0) & 0x0f), NB_CMOS_L2);
+	pci_write_config8(HOST_BRIDGE, HB50_L2_CFG_0, 0);
 
 	//NOTICE INVD is run in exit_car.S
 	//NOTICE if there are stale data/code in L2 cache, after enabling there will be random crashes

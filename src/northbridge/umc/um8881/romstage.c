@@ -69,6 +69,39 @@ static const struct umc_cfg_entry hb_init_table[] = {
 };
 
 
+/*
+ * Fill the E and F segment shadow RAM like the original BIOS: from code in DRAM with the source in DRAM,
+ * never writing E0000-FFFFF while running from the flash (romstage runs from the E segment).
+ */
+#define SHADOW_CODE	0x90000
+
+extern const char shadow_fill_start[], shadow_fill_end[];
+
+asm(".section .text.shadow_fill, \"ax\", @progbits\n"
+    "shadow_fill_start:\n"
+    "	pushl	%esi\n"
+    "	pushl	%edi\n"
+    "	cld\n"
+    "	movl	$0xfffe0000, %esi\n"
+    "	movl	$0x100000, %edi\n"
+    "	movl	$0x8000, %ecx\n"
+    "	rep movsl\n"
+    "	movl	$0x100000, %esi\n"
+    "	movl	$0xe0000, %edi\n"
+    "	movl	$0x8000, %ecx\n"
+    "	rep movsl\n"
+    "	popl	%edi\n"
+    "	popl	%esi\n"
+    "	ret\n"
+    "shadow_fill_end:\n"
+    ".previous\n");
+
+static void shadow_fill_ef(void)
+{
+	memcpy((void *)SHADOW_CODE, shadow_fill_start, shadow_fill_end - shadow_fill_start);
+	((void (*)(void))SHADOW_CODE)();
+}
+
 void dram_init(void);
 void l2_cache_init(void);
 void um8886_early_init(void);
@@ -125,12 +158,9 @@ void mainboard_romstage_entry(void)
 	post_code(POST_UMC_SHADOW);
 	pci_update_config8(HOST_BRIDGE, HB55_SHADOW_CFG, ~0x40, 0);
 
-	//copy ROME to shadowE
-	//NOTICE when disabled, L2 will cause crashes ... may interference with L2 fill in a good way
-	memcpy((void*)0xe0000, (void*)0xfffe0000, 0x10000);
+	//copy the flash (E and F) to shadow E and F
+	shadow_fill_ef();
 
-	//copy ROMF to shadowF
-	// memcpy((void*)0xf0000, (void*)0xffff0000, 0x10000);
 
 	//CSEG shadow
 	pci_update_config8(HOST_BRIDGE, HB54_SHADOW_EN, ~0, 0xe);

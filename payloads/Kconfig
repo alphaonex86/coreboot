@@ -72,6 +72,13 @@ config COMPRESSED_PAYLOAD_LZMA
 	  In order to reduce the size payloads take up in the ROM chip
 	  coreboot can compress them using the LZMA algorithm.
 
+config PAYLOAD_BCJ_X86
+	bool "Payload segments are x86 BCJ filtered before compression"
+	depends on COMPRESSED_PAYLOAD_LZMA
+	help
+	  The payload ELF was filtered with the x86 BCJ filter of xz (start offset 0) before it was
+	  added; segments are unfiltered after LZMA decompression. About 4% smaller x86 code.
+
 config COMPRESSED_PAYLOAD_LZ4
 	bool "Use LZ4 compression for payloads"
 	help

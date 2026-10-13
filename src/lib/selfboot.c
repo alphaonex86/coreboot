@@ -113,6 +113,8 @@ printk(BIOS_DEBUG, "tmp 0:%02hhx 1:%02hhx 2:%02hhx 3:%02hhx\n",
 		timestamp_add_now(TS_ULZMA_END);
 		if (!len) /* Decompression Error. */
 			return 0;
+		if (CONFIG(PAYLOAD_BCJ_X86))
+			bcj_x86_decode(dest, len);
 		break;
 	}
 	case CBFS_COMPRESS_LZ4: {

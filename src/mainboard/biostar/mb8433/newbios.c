@@ -79,6 +79,10 @@ void newbios_chipset_options(void)
 {
 	u8 fails = cmos_read(NB_CMOS_BOOTFAIL);
 
+	/* a full POST: no CPU-only reset may jump to the shadow RAM before SeaBIOS is loaded there
+	   (bootblock checks 0Fh; a dead CMOS battery leaves garbage in it) */
+	cmos_write(0, 0x0f);
+
 	cmos_write(fails < 0xff ? fails + 1 : fails, NB_CMOS_BOOTFAIL);
 	if (!settings_valid())
 		return;
@@ -99,7 +103,8 @@ void newbios_chipset_options(void)
 	apply(chipset, ARRAY_SIZE(chipset));
 }
 
-/* Core clock in MHz: dec + taken jnz is 4 clocks on 486-class CPUs, timed with PIT channel 2. */
+/* Core clock in MHz: dec + taken jnz is 4 clocks on 486-class CPUs, timed with PIT channel 2. The loop is
+   16-byte aligned: unaligned it took 4-5 clocks (107-121 MHz on the 133 MHz board: auto timings of a 25 MHz bus). */
 static unsigned int cpu_mhz(void)
 {
 	u32 n = 200000;
@@ -108,10 +113,29 @@ static unsigned int cpu_mhz(void)
 	outb(0xb0, 0x43);
 	outb(0xff, 0x42);
 	outb(0xff, 0x42);
-	asm volatile("1: decl %0; jnz 1b" : "+r"(n));
+	asm volatile(".align 16\n1: decl %0; jnz 1b" : "+r"(n));
 	outb(0x80, 0x43);
-	u32 ticks = 0xffff - (inb(0x42) | inb(0x42) << 8);
+	u32 ticks = inb(0x42);
+	ticks = 0xffff - (ticks | inb(0x42) << 8);
 	return ticks ? (954545 + ticks / 2) / ticks : 0;	/* 800000 clocks at 1.193182 MHz */
+}
+
+/* The core clock is mhz +- 4% of a standard bus clock (25, 33.3, 40, 50 MHz) times m. */
+static int standard_bus(unsigned int mhz, unsigned int m)
+{
+	static const unsigned int bus10[] = { 250, 333, 400, 500 };	/* in 0.1 MHz */
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(bus10); i++)
+		if (mhz * 10 * 25 >= bus10[i] * m * 24 && mhz * 10 * 25 <= bus10[i] * m * 26)
+			return 1;
+	return 0;
+}
+
+/* Am5x86: 4x or 3x (CLKMUL pin, not visible to software). 3x (the faster bus, slower timings) unless only
+   4x gives a standard bus clock: 133 = 4 x 33 and 160 = 4 x 40, but 100, 120, 150 and odd clocks are 3x. */
+static unsigned int am5x86_multiplier(unsigned int mhz)
+{
+	return standard_bus(mhz, 4) && !standard_bus(mhz, 3) ? 4 : 3;
 }
 
 /* Core/bus clock ratio from the family and model (CPUID, else DX at reset); 1 if unknown, which
@@ -125,7 +149,7 @@ static unsigned int cpu_multiplier(unsigned int mhz)
 	switch (sig & 0x0f) {
 	case 3: case 5: case 7: return mhz > 85 ? 3 : 2;	/* DX2, SX2, DX2 write-back */
 	case 8: case 9: return 3;		/* DX4 */
-	case 14: case 15: return 4;		/* Am5x86 */
+	case 14: case 15: return am5x86_multiplier(mhz);
 	}
 	return 1;
 }
@@ -146,7 +170,7 @@ void newbios_auto_timings(void)
 	if (settings_valid() && !setting(NB_CHIPSET_AUTO)
 	    && cmos_read(NB_CMOS_BOOTFAIL) - 1 < NB_BOOTFAIL_MAX)
 		return;		/* the manual values of setup are in use */
-	for (i = 0; bus >= rows[i].bus_below; i++)
+	for (i = 0; i < ARRAY_SIZE(rows) - 1 && bus >= rows[i].bus_below; i++)
 		;
 	printk(BIOS_INFO, "newBIOS: %u MHz bus, auto chipset timings %u\n", bus, i);
 	pci_update_config8(HOST_BRIDGE, HB50_L2_CFG_0, ~0x30, rows[i].hb50);
@@ -155,11 +179,16 @@ void newbios_auto_timings(void)
 	pci_update_config8(ISA_BRIDGE, IBCA4_CLOCK_RATIO, ~0x03, rows[i].ibca4);
 }
 
-/* Ramstage PIRQ routing: links INTA#-INTD# set in setup keep their IRQ. */
+/* Ramstage PIRQ routing: links INTA#-INTD# set in setup keep their IRQ, if it is one setup offers
+   (3, 4, 5, 7, 9-12, 14, 15 as the original BIOS); anything else is routed automatically. */
+#define SETUP_PCI_IRQS 0xdeb8
+
 void mainboard_pirq_preset(unsigned char *pirq)
 {
 	if (!settings_valid())
 		return;
-	for (int i = 0; i < 4; i++)
-		pirq[i] = setting(NB_PCI_IRQ_A + i);
+	for (int i = 0; i < 4; i++) {
+		u8 irq = setting(NB_PCI_IRQ_A + i);
+		pirq[i] = (SETUP_PCI_IRQS >> irq) & 1 ? irq : 0;
+	}
 }

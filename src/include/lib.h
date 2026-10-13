@@ -10,6 +10,9 @@
 /* Defined in src/lib/lzma.c. Returns decompressed size or 0 on error. */
 size_t ulzman(const void *src, size_t srcn, void *dst, size_t dstn);
 
+/* Undo the xz x86 BCJ filter (start offset 0) in place. */
+void bcj_x86_decode(uint8_t *buf, size_t size);
+
 /* Defined in src/lib/ramtest.c */
 /* Assumption is 32-bit addressable UC memory. */
 void ram_check(uintptr_t start);
