@@ -95,7 +95,7 @@ int do_lzma_compress(char *in, int in_len, char *out, int *out_len)
 	props.dictSize = in_len;
 	props.pb = 0; /* PosStateBits, default: 2, range: 0..4 */
 	props.lp = 0; /* LiteralPosStateBits, default: 0, range: 0..4 */
-	props.lc = 1; /* LiteralContextBits, default: 3, range: 0..8 */
+	props.lc = 3; /* LiteralContextBits, default: 3, range: 0..8; 3 is the most coreboot's decoder takes (lzma.c scratchpad) */
 	props.fb = 273; /* NumFastBytes */
 	props.mc = 0; /* MatchFinderCycles, default: 0 */
 	props.algo = 1; /* AlgorithmNo, apparently, 0 and 1 are valid values. 0 = fast mode */

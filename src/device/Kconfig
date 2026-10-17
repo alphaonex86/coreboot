@@ -549,10 +549,12 @@ config ECAM_MMCONF_SUPPORT
 
 config PCIX_PLUGIN_SUPPORT
 	bool
+	default n if ARCH_486	# a 486 PCI bus has no such bridges
 	default y
 
 config CARDBUS_PLUGIN_SUPPORT
 	bool
+	default n if ARCH_486	# a 486 PCI bus has no such bridges
 	default y
 
 config AZALIA_PLUGIN_SUPPORT
@@ -570,6 +572,7 @@ config AZALIA_LOCK_DOWN_R_WO_GCAP
 
 config PCIEXP_PLUGIN_SUPPORT
 	bool
+	default n if ARCH_486	# a 486 PCI bus has no such bridges
 	default y
 
 config ECAM_MMCONF_BASE_ADDRESS

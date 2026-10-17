@@ -62,7 +62,7 @@ ARCHDIR-ppc64	:= ppc64
 CFLAGS_arm	+=
 CFLAGS_arm64	+= -mgeneral-regs-only
 CFLAGS_riscv	+=
-CFLAGS_x86_32	+=
+CFLAGS_x86_32	+= -mpreferred-stack-boundary=2   # 4-byte stack alignment: 16 only costs code on a 486
 CFLAGS_x86_64	+= -mcmodel=large -mno-red-zone
 CFLAGS_ppc64	+=
 

@@ -33,43 +33,20 @@ static u8 setting(int index)
 	return NB_CMOS_GET(cmos_read, index);
 }
 
-struct field {
-	u8 setting;
-	pci_devfn_t dev;
-	u8 reg, mask;
-	u8 count, value[4];   /* register field for setting value 0..count-1 */
-};
-
 /* Not timings: applied with Auto Configuration and after unfinished POSTs too, like the original. */
-static const struct field caching[] = {
-	{ NB_SYSBIOS_CACHE,     HOST_BRIDGE, 0x55, 0x20, 2, { 0x00, 0x20 } },
-	{ NB_VIDBIOS_CACHE,     HOST_BRIDGE, 0x55, 0x01, 2, { 0x00, 0x01 } },
+static const struct nb_field caching[] = {
+	{ NB_SYSBIOS_CACHE,     0, 0x55, 0x20, 2, { 0x00, 0x20 } },
+	{ NB_VIDBIOS_CACHE,     0, 0x55, 0x01, 2, { 0x00, 0x01 } },
 };
 
-static const struct field chipset[] = {
-	{ NB_DRAM_READ_WS,      HOST_BRIDGE, 0x51, 0xc0, 4, { 0x00, 0x40, 0x80, 0xc0 } },	/* 3..0 WS */
-	{ NB_DRAM_WRITE_WS,     HOST_BRIDGE, 0x51, 0x30, 4, { 0x00, 0x10, 0x20, 0x30 } },
-	{ NB_L2_WS,             HOST_BRIDGE, 0x50, 0x30, 4, { 0x00, 0x10, 0x20, 0x30 } },
-	{ NB_HOST_PCI_POST_WS,  HOST_BRIDGE, 0x52, 0x80, 2, { 0x00, 0x80 } },	/* 1 WS, 0 WS */
-	{ NB_HOST_PCI_BURST,    HOST_BRIDGE, 0x53, 0x80, 2, { 0x00, 0x80 } },
-	{ NB_BURST_COPYBACK,    HOST_BRIDGE, 0x53, 0x40, 2, { 0x00, 0x40 } },
-	{ NB_EARLY_CACHE_WRITE, HOST_BRIDGE, 0x5d, 0x80, 2, { 0x00, 0x80 } },
-	{ NB_SLOW_REFRESH,      HOST_BRIDGE, 0x5d, 0x10, 2, { 0x00, 0x10 } },
-	{ NB_EDO,               HOST_BRIDGE, 0x61, 0xc0, 2, { 0x00, 0xc0 } },
-	{ NB_PCI_POSTED_WRITE,  ISA_BRIDGE,  0x40, 0x04, 2, { 0x00, 0x04 } },
-	{ NB_DEVSEL,            ISA_BRIDGE,  0x40, 0x03, 3, { 0x01, 0x00, 0x02 } },	/* slow, medium, fast */
-	{ NB_PCI_BUS_PARK,      ISA_BRIDGE,  0x41, 0x04, 2, { 0x04, 0x00 } },
-	{ NB_PREEMPT_PCI,       ISA_BRIDGE,  0x46, 0x10, 2, { 0x10, 0x00 } },
-	{ NB_KBC_CLOCK,         ISA_BRIDGE,  0x56, 0x0c, 4, { 0x00, 0x04, 0x08, 0x0c } },	/* 7.16 MHz, PCICLK/4 /3 /2 */
-	{ NB_HOST_PCI_CLOCK,    ISA_BRIDGE,  0xa4, 0x03, 3, { 0x01, 0x02, 0x00 } },	/* 1:1, 1:2/3, 1:1/2 */
-};
+static const struct nb_field chipset[] = { NB_TIMING_FIELDS NB_OPTION_FIELDS };
 
-static void apply(const struct field *f, int count)
+static void apply(const struct nb_field *f, int count)
 {
 	for (; count--; f++) {
 		u8 v = setting(f->setting);
 		if (v < f->count)
-			pci_update_config8(f->dev, f->reg, ~f->mask, f->value[v]);
+			pci_update_config8(f->ibc ? ISA_BRIDGE : HOST_BRIDGE, f->reg, ~f->mask, f->value[v]);
 	}
 }
 
