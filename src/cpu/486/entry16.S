@@ -82,7 +82,7 @@ _start16bit:
 1:
 
 	/* With CONFIG_POST_IO each post_code(c) below writes c to port 80h
-	 * for a POST card (include/cpu/486/post_code.h, newBIOS/POSTCODES.md).
+	 * for a POST card (include/cpu/486/post_code.h, mb-8433UUD-A-BIOS/POSTCODES.md).
 	 * post_init is empty (it used to set up COM1 for them). */
 	post_init
 	post_code(POST_RESET_VECTOR_CORRECT)

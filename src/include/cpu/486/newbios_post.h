@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* newBIOS POST codes on port 80h for the 486 bootblock, romstage and postcar (values not used by
+/* mb-8433UUD POST codes on port 80h for the 486 bootblock, romstage and postcar (values not used by
    commonlib/console/post_codes.h, which covers ramstage). Only #defines: included by assembly.
-   Meanings: newBIOS/POSTCODES.md. */
+   Meanings: mb-8433UUD-A-BIOS/POSTCODES.md. */
 #ifndef CPU_486_NEWBIOS_POST_H
 #define CPU_486_NEWBIOS_POST_H
 

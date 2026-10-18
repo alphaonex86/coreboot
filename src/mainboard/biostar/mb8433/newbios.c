@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 /*
- * Options of the newBIOS setup utility (CMOS layout in newbios_cmos.h) that coreboot applies:
+ * Options of the mb-8433UUD setup utility (CMOS layout in newbios_cmos.h) that coreboot applies:
  * chipset features, external cache and PCI interrupt routing. The register fields are the ones the
- * original Award BIOS programs for the same setup values (found with newBIOS/test/oracle).
+ * original Award BIOS programs for the same setup values (found with mb-8433UUD-A-BIOS/test/oracle).
  */
 
 #define __SIMPLE_DEVICE__
@@ -73,7 +73,7 @@ void newbios_chipset_options(void)
 	if (setting(NB_CHIPSET_AUTO))
 		return;
 	if (fails >= NB_BOOTFAIL_MAX) {
-		printk(BIOS_WARNING, "newBIOS: %u unfinished POSTs, chipset setup values not used\n",
+		printk(BIOS_WARNING, "mb-8433UUD: %u unfinished POSTs, chipset setup values not used\n",
 		       fails);
 		return;
 	}
@@ -149,7 +149,7 @@ void newbios_auto_timings(void)
 		return;		/* the manual values of setup are in use */
 	for (i = 0; i < ARRAY_SIZE(rows) - 1 && bus >= rows[i].bus_below; i++)
 		;
-	printk(BIOS_INFO, "newBIOS: %u MHz bus, auto chipset timings %u\n", bus, i);
+	printk(BIOS_INFO, "mb-8433UUD: %u MHz bus, auto chipset timings %u\n", bus, i);
 	pci_update_config8(HOST_BRIDGE, HB50_L2_CFG_0, ~0x30, rows[i].hb50);
 	pci_update_config8(HOST_BRIDGE, HB51_L2_CFG_1, ~0xf0, rows[i].hb51);
 	pci_update_config8(ISA_BRIDGE, IBC56_CLOCK, ~0x0f, rows[i].ibc56);
