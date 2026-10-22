@@ -206,7 +206,7 @@ skip_clflush:
 	/* Read-modify-write of UM8881 register 50h (HB50_L2_CFG_0): set bit
 	 * 6, the L2 cache WT/WB mode bit (per ../um8881f-documentation-*.pdf,
 	 * community notes, not an official datasheet). */
-#if 1
+#if CONFIG(NORTHBRIDGE_UMC_UM8881)
 	pci_read(UMC_PCI_BDFR(0, 0x10, 0, 0x50))
 	movb	%al, %cl
 	orb	$(0x40), %cl

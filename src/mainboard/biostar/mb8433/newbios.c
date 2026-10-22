@@ -16,7 +16,7 @@
 #include <pc80/mc146818rtc.h>
 #include <northbridge/umc/um8881/reg_init.h>
 
-#include "newbios_cmos.h"
+#include <newbios_cmos.h>
 #include "bios_name.h"
 
 static int settings_valid(void)

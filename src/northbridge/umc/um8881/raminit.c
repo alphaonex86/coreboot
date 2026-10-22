@@ -15,7 +15,7 @@
 
 #include "reg_init.h"
 #include <pc80/mc146818rtc.h>
-#include <mainboard/biostar/mb8433/newbios_cmos.h>
+#include <newbios_cmos.h>
 
 void dram_init(void);
 void l2_cache_init(void);
