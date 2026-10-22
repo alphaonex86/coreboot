@@ -1,0 +1,7 @@
+Board name: IBM Aptiva 2168 (Type I-2 system board)
+Category: retro
+ROM package: PLCC-32
+ROM protocol: Parallel
+ROM socketed: y
+Flashrom support: y
+Release year: 1996

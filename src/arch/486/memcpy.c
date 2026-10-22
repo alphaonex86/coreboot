@@ -100,7 +100,7 @@ void *memcpy(void *dest, const void *src, size_t n)
 	return dest;
 }
 
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 
 void *memcpy(void *vdest, const void *vsrc, size_t bytes)
 {

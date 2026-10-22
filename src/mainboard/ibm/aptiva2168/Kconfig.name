@@ -1,0 +1,2 @@
+config BOARD_IBM_APTIVA2168
+	bool "Aptiva 2168 (Type I-2 board, Aptiva A90)"

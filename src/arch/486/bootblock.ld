@@ -73,7 +73,7 @@ SECTIONS {
 	/* Flashrom and FILO have two alternatives for the location of .id section. */
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	_ID_SECTION_END = SIZEOF(.fit_pointer) && SIZEOF(.id) > 0x28 ? 0x000fff80 : _X86_RESET_VECTOR;
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 	_ID_SECTION_END = SIZEOF(.fit_pointer) && SIZEOF(.id) > 0x28 ? 0xffffff80 : _X86_RESET_VECTOR;
 #endif
 
@@ -94,13 +94,13 @@ SECTIONS {
 
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	_FIT_POINTER = SIZEOF(.fit_pointer) ? 0x000fffc0 : _X86_RESET_VECTOR;
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 	_FIT_POINTER = SIZEOF(.fit_pointer) ? 0xffffffc0 : _X86_RESET_VECTOR;
 #endif
 
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	. = 0x000ffff0;
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 	. = 0xfffffff0;
 #endif
 	_X86_RESET_VECTOR = .;
@@ -112,7 +112,7 @@ SECTIONS {
 	}
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 	. = 0x000ffffc;
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 	. = 0xfffffffc;
 #endif
 	.header_pointer . : {
@@ -127,7 +127,7 @@ SECTIONS {
  * to 32 bits and intermediate files reaching size of close to 4 GiB.
  */
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 _bogus1 = ASSERT(_bootblock & 0x80000000, "_bootblock too low, invalid ld script");
 _bogus2 = ASSERT(_start16bit & 0x80000000, "_start16bit too low, invalid ld script");
 _bogus3 = ASSERT(_start16bit >= 0xffff0000, "_start16bit too low. Please report.");

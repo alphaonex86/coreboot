@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config SOUTHBRIDGE_OPTI_82C558M
+	bool
+	select BOOT_DEVICE_NOT_SPI_FLASH

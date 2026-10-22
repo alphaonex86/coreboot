@@ -1,0 +1,21 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+if BOARD_IBM_APTIVA2168
+
+config BOARD_SPECIFIC_OPTIONS
+	def_bool y
+	select CPU_486
+	select BOARD_ROMSIZE_KB_128
+	select MISSING_BOARD_RESET
+	select NORTHBRIDGE_OPTI_VIPERM
+	select SOUTHBRIDGE_OPTI_82C558M
+	select SUPERIO_SMSC_SMSCSUPERIO
+	select NO_MONOTONIC_TIMER
+
+config MAINBOARD_DIR
+	default "ibm/aptiva2168"
+
+config MAINBOARD_PART_NUMBER
+	default "Aptiva 2168"
+
+endif # BOARD_IBM_APTIVA2168

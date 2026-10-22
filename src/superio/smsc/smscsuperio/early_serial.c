@@ -10,10 +10,11 @@
 #define SMSC_ENTRY_KEY 0x55
 #define SMSC_EXIT_KEY 0xAA
 
-/* Enable configuration: pass entry key '0x87' into index port dev. */
+/* Enable configuration: pass entry key '0x55' twice into index port dev (the FDC37C93x needs both). */
 static void pnp_enter_conf_state(pnp_devfn_t dev)
 {
 	u16 port = dev >> 8;
+	outb(SMSC_ENTRY_KEY, port);
 	outb(SMSC_ENTRY_KEY, port);
 }
 

@@ -102,7 +102,7 @@
 
 #if CONFIG(NORTHBRIDGE_ALI_M1489)
 . = 0x000fff00;
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 . = 0xffffff00;
 #endif
 

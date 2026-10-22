@@ -16,6 +16,7 @@
  * stuff (e.g. HWM, ACPI, SMBus) more work is probably required.
  */
 
+#include <arch/io.h>
 #include <device/device.h>
 #include <device/pnp.h>
 #include <superio/conf_mode.h>
@@ -23,6 +24,7 @@
 #include <pc80/keyboard.h>
 
 /* The following Super I/O chips are currently supported by this driver: */
+#define FDC37C93X	0x02	/* FDC37C931/932/933 */
 #define LPC47M172	0x14
 #define FDC37B80X	0x42	/* Same ID: FDC37M70X (a.k.a. FDC37M707) */
 #define FDC37B78X	0x44
@@ -103,6 +105,7 @@ static const struct logical_devices {
 	int devs[MAX_LOGICAL_DEVICES];
 } logical_device_table[] = {
 	/* Chip   FDC PP SP1 SP2 RTC KBC AUX XBUS HWM GAME PME MPU RT ACPI SMB */
+	{FDC37C93X,{0, 3, 4,  5,  6,  7,  8,  -1, -1,  -1, -1, -1, -1, -1, -1}},
 	{LPC47M172,{0, 3, 4,  2, -1,  7, -1,  -1, -1,  -1, -1, -1, 10, -1, -1}},
 	{FDC37B80X,{0, 3, 4,  5, -1,  7,  8,  -1, -1,  -1, -1, -1, -1, -1, -1}},
 	{FDC37B78X,{0, 3, 4,  5,  6,  7,  8,  -1, -1,  -1, -1, -1, -1, 10, -1}},
@@ -155,6 +158,21 @@ static void smsc_init(struct device *dev)
 	}
 }
 
+/*
+ * The FDC37C93x enters the configuration state on 55h written twice; on the
+ * other chips the second 55h only selects an index.
+ */
+static void smsc_enter_conf_mode(struct device *dev)
+{
+	outb(0x55, dev->path.pnp.port);
+	outb(0x55, dev->path.pnp.port);
+}
+
+static const struct pnp_mode_ops smsc_conf_mode = {
+	.enter_conf_mode = smsc_enter_conf_mode,
+	.exit_conf_mode  = pnp_exit_conf_mode_aa,
+};
+
 /** Standard device operations. */
 static struct device_operations ops = {
 	.read_resources   = pnp_read_resources,
@@ -162,7 +180,7 @@ static struct device_operations ops = {
 	.enable_resources = pnp_enable_resources,
 	.enable           = pnp_alt_enable,
 	.init             = smsc_init,
-	.ops_pnp_mode     = &pnp_conf_mode_55_aa,
+	.ops_pnp_mode     = &smsc_conf_mode,
 };
 
 /**
@@ -217,7 +235,7 @@ static void enable_dev(struct device *dev)
 
 	if (first_time) {
 
-		pnp_enter_conf_mode_55(dev);
+		smsc_enter_conf_mode(dev);
 
 		/* Read the device ID and revision of the Super I/O chip. */
 		superio_id = pnp_read_config(dev, DEVICE_ID_REG);

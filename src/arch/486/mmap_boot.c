@@ -10,7 +10,7 @@
 // NOTICE 0xfffe0000 not existent on finali
 #	define rom_base ((void *)(uintptr_t)(0x100000ULL-CONFIG_ROM_SIZE))
 
-#elif CONFIG(NORTHBRIDGE_UMC_UM8881)
+#else
 
 /* The ROM is memory mapped just below 4GiB. Form a pointer for the base. */
 #	define rom_base ((void *)(uintptr_t)(0x100000000ULL-CONFIG_ROM_SIZE))

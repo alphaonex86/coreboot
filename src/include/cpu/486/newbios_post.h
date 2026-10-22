@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* mb-8433UUD POST codes on port 80h for the 486 bootblock, romstage and postcar (values not used by
+/* POST codes on port 80h for the 486 bootblock, romstage and postcar (values not used by
    commonlib/console/post_codes.h, which covers ramstage). Only #defines: included by assembly.
-   Meanings: retro-firmware boards/mb8433uud/POSTCODES.md. */
+   Meanings: retro-firmware boards/mb8433uud/POSTCODES.md, boards/aptiva2168/README.md. */
 #ifndef CPU_486_NEWBIOS_POST_H
 #define CPU_486_NEWBIOS_POST_H
 
@@ -11,7 +11,9 @@
 #define POST_486_PROTECTED_MODE		0x04	/* CR0.PE set, far jump to 32-bit code next */
 #define POST_486_CAR_FILL		0x22	/* L1 on, reading the cache-as-RAM range into it */
 #define POST_486_CAR_LOCKED		0x23	/* CR0.CD = NW = 1: the L1 lines are now the RAM */
-#define POST_486_CAR_DRAM_OFF		0x26	/* temporary UM8881F DRAM setup removed */
+#define POST_486_CAR_DRAM_OFF		0x26	/* temporary UM8881F DRAM setup or Viper-M DRAM decode removed */
+#define POST_486_CAR_TEST_OK		0x29	/* Viper-M: cache-as-RAM self-test passed */
+#define POST_486_CAR_TEST_FAIL		0x2a	/* Viper-M: cache-as-RAM self-test failed, halted */
 #define POST_486_CAR_CLEAR		0x27	/* cache-as-RAM zeroed */
 #define POST_486_CAR_STACK		0x28	/* stack in cache-as-RAM, calling the bootblock C code */
 #define POST_486_BOOTBLOCK_C		0x14	/* bootblock C code, stack in cache-as-RAM */
@@ -30,6 +32,7 @@
 #define POST_UMC_SHADOW			0x38	/* BIOS copied to shadow RAM E/F, C-F shadowed */
 #define POST_UMC_CBMEM			0x3a	/* CBMEM at the top of RAM */
 #define POST_UMC_LOAD_POSTCAR		0x3b	/* romstage done, postcar next */
+#define POST_VIPERM_ROMSTAGE		0x30	/* romstage: Viper-M chipset init (step 3 skeleton: halts here) */
 #define POST_486_POSTCAR		0x3c	/* postcar, still on the cache-as-RAM stack */
 #define POST_486_CAR_OFF		0x3d	/* cache-as-RAM left, L1 normal: ramstage next */
 

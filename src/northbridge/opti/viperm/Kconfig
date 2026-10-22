@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config NORTHBRIDGE_OPTI_VIPERM
+	bool
+	select NO_ECAM_MMCONF_SUPPORT
+	select NO_CBFS_MCACHE
+	select NO_DDR5
+	select NO_LPDDR4
+	select NO_DDR4
+	select NO_DDR3
+	select NO_DDR2
+	select NO_SMM
+	select BOOT_DEVICE_NOT_SPI_FLASH
+	select NO_FMAP_CACHE

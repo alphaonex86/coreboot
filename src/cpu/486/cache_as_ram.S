@@ -458,6 +458,9 @@ pci_dump_loop:
 	/* TODO EXPERIMENTAL set L1 bit ??? */
 	# # # pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x51), $0x02)
 
+#elif CONFIG(NORTHBRIDGE_OPTI_VIPERM)
+	/* Nothing to set: the 82C557M powers up with a 2 MB DRAM configuration
+	 * (index 00h), so 0x1A0000 is cacheable DRAM already (inferred). */
 #endif
 
 #if 0
@@ -532,6 +535,44 @@ pci_dump_loop:
 	 * stack and data must stay inside it. */
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x52), $0x00)
 	pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x53), $0x00)
+
+#elif CONFIG(NORTHBRIDGE_OPTI_VIPERM)
+	/* No DRAM bank decoded any more (82C557M index 13h = 88h, the IBM
+	 * init value): a CAR line that is not in L1 now reads back wrong. */
+	movb	$0x13, %al
+	outb	%al, $0x22
+	movb	$0x88, %al
+	outb	%al, $0x24
+
+	/* CAR self-test: every dword holds its address, then its complement. */
+	xorl	%ebx, %ebx
+.Lcar_test_pass:
+	movl	$_car_region_start, %edi
+.Lcar_test_write:
+	movl	%edi, %eax
+	xorl	%ebx, %eax
+	movl	%eax, (%edi)
+	addl	$4, %edi
+	cmpl	$_car_region_end, %edi
+	jb	.Lcar_test_write
+	movl	$_car_region_start, %edi
+.Lcar_test_read:
+	movl	%edi, %eax
+	xorl	%ebx, %eax
+	cmpl	%eax, (%edi)
+	jne	.Lcar_test_fail
+	addl	$4, %edi
+	cmpl	$_car_region_end, %edi
+	jb	.Lcar_test_read
+	xorl	$0xffffffff, %ebx
+	jnz	.Lcar_test_pass
+	post_code(POST_486_CAR_TEST_OK)
+	jmp	.Lcar_test_done
+.Lcar_test_fail:
+	post_code(POST_486_CAR_TEST_FAIL)
+	hlt
+	jmp	.Lcar_test_fail
+.Lcar_test_done:
 #endif
 
 
