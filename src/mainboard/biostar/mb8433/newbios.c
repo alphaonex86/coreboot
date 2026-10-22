@@ -3,7 +3,7 @@
 /*
  * Options of the mb-8433UUD setup utility (CMOS layout in newbios_cmos.h) that coreboot applies:
  * chipset features, external cache and PCI interrupt routing. The register fields are the ones the
- * original Award BIOS programs for the same setup values (found with mb-8433UUD-A-BIOS/test/oracle).
+ * original Award BIOS programs for the same setup values (found with retro-firmware test/oracle).
  */
 
 #define __SIMPLE_DEVICE__
