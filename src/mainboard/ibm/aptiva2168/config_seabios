@@ -1,5 +1,5 @@
 # SeaBIOS for the IBM Aptiva 2168 (Type I-2): the base settings; the shared seabios.config and the board's
-# boards/aptiva2168/seabios.config follow (last assignment wins). No board code yet (port step 5).
+# boards/aptiva2168/seabios.config follow (last assignment wins).
 CONFIG_COREBOOT=y
 # CONFIG_QEMU is not set
 # CONFIG_CSM is not set
@@ -43,4 +43,4 @@ CONFIG_NO_VGABIOS=y
 CONFIG_DEBUG_LEVEL=0
 # CONFIG_DEBUG_COREBOOT is not set
 # CONFIG_NEWBIOS_BOARD_MB8433 is not set
-CONFIG_NEWBIOS_BOARD_GENERIC=y
+CONFIG_NEWBIOS_BOARD_APTIVA2168=y
