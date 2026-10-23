@@ -27,6 +27,10 @@ static const u8 init_table[][2] = {
 	{ 0x1d, 0x24 },	/* PEN# pin is MPERR# */
 };
 
+void __weak newbios_chipset_options(void)
+{
+}
+
 void mainboard_romstage_entry(void)
 {
 	const unsigned int bus_mhz = mainboard_bus_mhz();
@@ -46,6 +50,7 @@ void mainboard_romstage_entry(void)
 	viperm_or(VIPERM_CPU_CACHE, 0x04);
 	viperm_write(VIPERM_EXT_DMA, 0x40);
 	pci_or_config8(ISA_BRIDGE, CYCLE_CTL, HIDDEN_REFRESH);
+	newbios_chipset_options();
 
 	cbmem_initialize_empty();
 }
