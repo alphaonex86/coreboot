@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 #include <bootblock_common.h>
+#include <commonlib/helpers.h>
+#include <console/console.h>
 #include <device/pnp_ops.h>
 #include <superio/smsc/smscsuperio/smscsuperio.h>
 
@@ -26,3 +28,11 @@ void bootblock_mainboard_early_init(void)
 
 	smscsuperio_enable_serial(PNP_DEV(SUPERIO_PORT, SMSCSUPERIO_SP1), 0x3f8);
 }
+
+#if CONFIG(BOOTBLOCK_CONSOLE)
+/* The bootblock C code runs on the cache-as-RAM stack: its self-test has passed (POST 29h, else 2Ah and a halt) */
+void bootblock_mainboard_init(void)
+{
+	printk(BIOS_INFO, "CAR: self-test passed, %u KiB at %08x\n", CONFIG_DCACHE_RAM_SIZE / KiB, CONFIG_DCACHE_RAM_BASE);
+}
+#endif

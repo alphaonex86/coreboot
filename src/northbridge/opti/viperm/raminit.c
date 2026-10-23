@@ -121,6 +121,8 @@ void viperm_dram_init(void)
 		post_code(POST_VIPERM_DRAM_PART);
 	}
 	dram_top = memory_count(top);
+	printk(BIOS_INFO, "DRAM: SIMM bank codes %u %u %u %u, %lu KiB\n",
+	       code[0], code[1], code[2], code[3], dram_top / KiB);
 	if (dram_top < top) {
 		printk(BIOS_WARNING, "DRAM: %lu KiB of %lu KiB, a 64 KiB block failed above\n",
 		       dram_top / KiB, top / KiB);
