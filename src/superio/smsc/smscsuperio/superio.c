@@ -218,6 +218,18 @@ static struct pnp_info pnp_dev_info[] = {
 	{ NULL, LD_SMB, },
 };
 
+/* The FDC37C93x: the RTC and keyboard controller have IRQs only (fixed ports), the parallel port may sit at
+   3BCh, the auxiliary I/O device decodes 2 ports (its GPIO registers E0h-F1h set in the devicetree). */
+static struct pnp_info fdc37c93x_dev_info[] = {
+	{ NULL, 0, PNP_IO0 | PNP_IRQ0 | PNP_DRQ0, 0x07f8, },
+	{ NULL, 3, PNP_IO0 | PNP_IRQ0 | PNP_DRQ0, 0x07fc, },
+	{ NULL, 4, PNP_IO0 | PNP_IRQ0, 0x07f8, },
+	{ NULL, 5, PNP_IO0 | PNP_IRQ0, 0x07f8, },
+	{ NULL, 6, PNP_IRQ0, },
+	{ NULL, 7, PNP_IRQ0 | PNP_IRQ1, },
+	{ NULL, 8, PNP_IO0, 0x0ffe, },
+};
+
 /**
  * Enable the logical devices of the Super I/O chip.
  *
@@ -263,6 +275,11 @@ static void enable_dev(struct device *dev)
 		}
 
 		pnp_exit_conf_mode_aa(dev);
+	}
+
+	if (superio_id == FDC37C93X) {
+		pnp_enable_devices(dev, &ops, ARRAY_SIZE(fdc37c93x_dev_info), fdc37c93x_dev_info);
+		return;
 	}
 
 	/* Find the correct Super I/O. */

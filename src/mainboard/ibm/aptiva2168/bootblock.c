@@ -4,7 +4,8 @@
 #include <device/pnp_ops.h>
 #include <superio/smsc/smscsuperio/smscsuperio.h>
 
-#define SUPERIO_PORT	0x370
+#include "aptiva2168.h"
+
 #define KBC_DEV		PNP_DEV(SUPERIO_PORT, 7)
 
 void bootblock_mainboard_early_init(void)

@@ -32,7 +32,12 @@
 #define POST_UMC_SHADOW			0x38	/* BIOS copied to shadow RAM E/F, C-F shadowed */
 #define POST_UMC_CBMEM			0x3a	/* CBMEM at the top of RAM */
 #define POST_UMC_LOAD_POSTCAR		0x3b	/* romstage done, postcar next */
-#define POST_VIPERM_ROMSTAGE		0x30	/* romstage: Viper-M chipset init (step 3 skeleton: halts here) */
+#define POST_VIPERM_ROMSTAGE		0x30	/* romstage: Viper-M register init */
+#define POST_VIPERM_DRAM		0x32	/* Viper-M DRAM sizing (13h/14h/19h) */
+#define POST_VIPERM_DRAM_PART		0x33	/* a SIMM holds more than the 82C557M addresses: the rest unused */
+#define POST_VIPERM_DRAM_CUT		0x34	/* memory count: a 64 KiB block failed, DRAM ends at its MiB */
+#define POST_VIPERM_SHADOW		0x38	/* Viper-M postcar: C0000-FFFFF shadow RAM */
+#define POST_VIPERM_NO_DRAM		0x3e	/* Viper-M: no usable DRAM (2 MiB at least), halted */
 #define POST_486_POSTCAR		0x3c	/* postcar, still on the cache-as-RAM stack */
 #define POST_486_CAR_OFF		0x3d	/* cache-as-RAM left, L1 normal: ramstage next */
 

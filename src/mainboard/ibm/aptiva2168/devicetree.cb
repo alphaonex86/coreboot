@@ -5,7 +5,43 @@ chip northbridge/opti/viperm
 		ops viperm_pci_domain_ops
 
 		device pci 00.0 on end # 82C557M host bridge
-		device pci 01.0 on end # 82C558M ISA bridge
+		device pci 01.0 on # 82C558M ISA bridge
+			# FDC37C93x as the IBM BIOS leaves it (no IDE logical devices: the IDE is the MIDE)
+			chip superio/smsc/smscsuperio
+				device pnp 370.0 on # floppy
+					io 0x60 = 0x3f0
+					irq 0x70 = 6
+					drq 0x74 = 2
+				end
+				device pnp 370.3 on # parallel port
+					io 0x60 = 0x3bc
+					irq 0x70 = 7
+					drq 0x74 = 3
+				end
+				device pnp 370.4 on # COM1
+					io 0x60 = 0x3f8
+					irq 0x70 = 4
+				end
+				device pnp 370.5 on # COM2
+					io 0x60 = 0x2f8
+					irq 0x70 = 3
+				end
+				device pnp 370.6 on # RTC
+					irq 0x70 = 8
+				end
+				device pnp 370.7 on # keyboard controller
+					irq 0x70 = 1
+					irq 0x72 = 12
+				end
+				device pnp 370.8 on # auxiliary I/O: ECh-EDh chip select (GP14), IRQ14/15 from GP10/GP11
+					io 0x60 = 0xec
+					irq 0xe0 = 0xe9
+					irq 0xe1 = 0xf9
+					irq 0xe4 = 0x08
+					irq 0xf1 = 0x01
+				end
+			end
+		end
 		device pci 02.0 on end # Trident TGUI9680 VGA
 		device pci 14.0 on end # 82C558M MIDE IDE
 	end

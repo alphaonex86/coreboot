@@ -459,8 +459,17 @@ pci_dump_loop:
 	# # # pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x51), $0x02)
 
 #elif CONFIG(NORTHBRIDGE_OPTI_VIPERM)
-	/* Nothing to set: the 82C557M powers up with a 2 MB DRAM configuration
-	 * (index 00h), so 0x1A0000 is cacheable DRAM already (inferred). */
+	/* 0x1A0000 in cacheable DRAM: bank 0 = 2 MB (13h = 81h). The 82C557M
+	 * powers up so (index 00h), not after a CPU-only reset. A20 on (port 92h
+	 * bit 1, as the IBM BIOS before sizing): bit 20 of 0x1A0000. */
+	movb	$0x13, %al
+	outb	%al, $0x22
+	movb	$0x81, %al
+	outb	%al, $0x24
+	inb	$0x92, %al
+	andb	$0xfe, %al
+	orb	$0x02, %al
+	outb	%al, $0x92
 #endif
 
 #if 0

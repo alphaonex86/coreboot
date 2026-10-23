@@ -11,11 +11,17 @@ config BOARD_SPECIFIC_OPTIONS
 	select SOUTHBRIDGE_OPTI_82C558M
 	select SUPERIO_SMSC_SMSCSUPERIO
 	select NO_MONOTONIC_TIMER
+	select HAVE_PIRQ_TABLE
+	select PIRQ_ROUTE
 
 config MAINBOARD_DIR
 	default "ibm/aptiva2168"
 
 config MAINBOARD_PART_NUMBER
 	default "Aptiva 2168"
+
+config IRQ_SLOT_COUNT
+	int
+	default 3
 
 endif # BOARD_IBM_APTIVA2168
