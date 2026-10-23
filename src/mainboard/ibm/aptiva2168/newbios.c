@@ -39,8 +39,7 @@ void newbios_chipset_options(void)
 	cmos_write(fails < 0xff ? fails + 1 : fails, NB_CMOS_BOOTFAIL);
 	if (!settings_valid() || setting(NB_CHIPSET_AUTO) || fails >= NB_BOOTFAIL_MAX)
 		return;
-	for (int i = 0; i < ARRAY_SIZE(fields); i++) {
-		const struct nb_field *f = &fields[i];
+	for (const struct nb_field *f = fields; f < fields + ARRAY_SIZE(fields); f++) {
 		u8 v = setting(f->setting);
 		if (v < f->count)
 			viperm_write(f->reg, (viperm_read(f->reg) & ~f->mask) | f->value[v]);
