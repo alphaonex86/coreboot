@@ -11,19 +11,19 @@
 #include "viperm.h"
 
 /*
- * DRAM sizing. Each SIMM pair (J23/J24: 13h, J27/J28: 14h) is two 64-bit banks, side A (bits 2:0) and side B
- * (bits 6:4); code n is a bank of 2 MiB << (n - 1) that drives 9 + n / 2 row and 9 + (n - 1) / 2 column MA
+ * DRAM sizing. Each SIMM pair (J23/J24: 13h, RAS0#/RAS1#; J27/J28: 19h, RAS4#/RAS5# as IBM's SIMM pinout and
+ * BIOS have it; 14h's RAS2#/RAS3# go to the empty SIMM3/SIMM4 footprints) is two 64-bit banks, side A (bits 2:0)
+ * and side B (bits 6:4); code n is a bank of 2 MiB << (n - 1) that drives 9 + n / 2 row and 9 + (n - 1) / 2 column MA
  * lines (data book table 4-16), the banks follow each other from 0. Each side is probed at code 5 with MA11 as
  * RAS4# (19h = 88h), as the IBM BIOS does: an MA line the SIMM lacks makes its address alias. It then gets the
  * largest code its lines fill: the codes of the IBM BIOS (boards/aptiva2168/test/simm_configs.txt in
- * retro-firmware). Probing at code 7 with MA11 (19h = 80h), which the IBM BIOS never does, sized the real
- * board's 1Mx32 pair as 2 + 2 MB. The probes stay out of the cache-as-RAM lines.
+ * retro-firmware). The probes stay out of the cache-as-RAM lines.
  */
 
 #define MIN_DRAM	(2 * MiB)
 
-static const u8 decode_regs[] = { VIPERM_MEM_DECODE_1, VIPERM_MEM_DECODE_2 };
-static const u8 decode_init[] = { 0x88, 0x80 };	/* IBM: 13h full decode, SMRAM; 14h DLE1# */
+static const u8 decode_regs[] = { VIPERM_MEM_DECODE_1, VIPERM_MEM_DECODE_3 };
+static const u8 decode_init[] = { 0x88, 0x88 };	/* IBM: 13h full decode, SMRAM; 19h MA11 = RAS4#, DIRTYWE# = RAS5# */
 
 static uintptr_t dram_top;
 
@@ -103,7 +103,7 @@ void viperm_dram_init(void)
 	bool partial = false;
 
 	post_code(POST_VIPERM_DRAM);
-	decode_write(VIPERM_MEM_DECODE_3, 0x88);
+	decode_write(VIPERM_MEM_DECODE_2, 0x80);	/* IBM: DLE1#, no banks */
 	for (int pair = 0; pair < 2; pair++) {
 		decode_write(decode_regs[!pair], decode_init[!pair]);
 		decode_write(decode_regs[pair], decode_init[pair] | 0x55);
@@ -111,7 +111,7 @@ void viperm_dram_init(void)
 		code[2 * pair + 1] = side_code(32 * MiB, &partial);
 	}
 	decode_write(VIPERM_MEM_DECODE_1, decode_init[0] | code[1] << 4 | code[0]);
-	decode_write(VIPERM_MEM_DECODE_2, decode_init[1] | code[3] << 4 | code[2]);
+	decode_write(VIPERM_MEM_DECODE_3, decode_init[1] | code[3] << 4 | code[2]);
 
 	uintptr_t top = 0;
 	for (int bank = 0; bank < ARRAY_SIZE(code); bank++)
