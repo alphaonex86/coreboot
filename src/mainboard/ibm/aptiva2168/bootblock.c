@@ -17,6 +17,8 @@ void bootblock_mainboard_early_init(void)
 	   romstage reads the setup's chipset values from its CMOS */
 	outb(0x55, SUPERIO_PORT);
 	outb(0x55, SUPERIO_PORT);
+	/* CR24 as the IBM BIOS: IRQ8 active low (the 82C558M's IRQ8# input), 16-bit address qualification */
+	pnp_write_config(KBC_DEV, 0x24, 0xc4);
 	pnp_set_logical_device(KBC_DEV);
 	pnp_set_irq(KBC_DEV, PNP_IDX_IRQ0, 1);
 	pnp_set_irq(KBC_DEV, PNP_IDX_IRQ1, 12);

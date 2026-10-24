@@ -1,9 +1,26 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+#include <bootstate.h>
 #include <cbmem.h>
 #include <device/device.h>
 #include <device/pci.h>
 #include <device/pci_ids.h>
+
+#include "viperm.h"
+
+int __weak viperm_l1_write_back(void)
+{
+	return 1;
+}
+
+/* The L1 write-back from the first ramstage step, unless the setup chose write-through (the CAR lines were filled
+   write-through) */
+static void viperm_l1_policy(void *unused)
+{
+	if (viperm_l1_write_back())
+		viperm_or(VIPERM_CPU_CACHE, VIPERM_L1_WRITE_BACK);
+}
+BOOT_STATE_INIT_ENTRY(BS_PRE_DEVICE, BS_ON_ENTRY, viperm_l1_policy, NULL);
 
 static struct device_operations host_bridge_ops = {
 	.read_resources		= pci_dev_read_resources,

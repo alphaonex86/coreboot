@@ -2,8 +2,8 @@
 
 /*
  * Options of the setup utility (CMOS layout in newbios_cmos.h) that coreboot applies on the Aptiva 2168: the DRAM
- * timings of CHIPSET FEATURES (NB_VIPERM_FIELDS; Auto Configuration keeps romstage's, the IBM BIOS's for the bus clock)
- * and the PCI interrupt routing.
+ * timings and cache options of CHIPSET FEATURES (NB_VIPERM_FIELDS; Auto Configuration keeps romstage's, the IBM
+ * BIOS's for the bus clock) and the PCI interrupt routing.
  */
 
 #include <arch/io.h>
@@ -29,6 +29,12 @@ static u8 setting(int index)
 	return NB_CMOS_GET(cmos_read, index);
 }
 
+/* fails: unfinished POSTs before this one */
+static int manual_chipset(u8 fails)
+{
+	return settings_valid() && !setting(NB_CHIPSET_AUTO) && fails < NB_BOOTFAIL_MAX;
+}
+
 /* Romstage, after the DRAM init: counts unfinished POSTs (SeaBIOS clears it at the end of POST) so that bad manual
    timings fall back to Auto after NB_BOOTFAIL_MAX tries. */
 void newbios_chipset_options(void)
@@ -37,13 +43,21 @@ void newbios_chipset_options(void)
 	u8 fails = cmos_read(NB_CMOS_BOOTFAIL);
 
 	cmos_write(fails < 0xff ? fails + 1 : fails, NB_CMOS_BOOTFAIL);
-	if (!settings_valid() || setting(NB_CHIPSET_AUTO) || fails >= NB_BOOTFAIL_MAX)
+	if (!manual_chipset(fails))
 		return;
 	for (const struct nb_field *f = fields; f < fields + ARRAY_SIZE(fields); f++) {
 		u8 v = setting(f->setting);
+		if (f->setting == NB_EARLY_CACHE_WRITE)
+			continue;
 		if (v < f->count)
 			viperm_write(f->reg, (viperm_read(f->reg) & ~f->mask) | f->value[v]);
 	}
+}
+
+/* Ramstage: the L1 write policy of CHIPSET FEATURES (romstage counted this POST) */
+int viperm_l1_write_back(void)
+{
+	return !manual_chipset(cmos_read(NB_CMOS_BOOTFAIL) - 1) || setting(NB_EARLY_CACHE_WRITE);
 }
 
 /* Ramstage PIRQ routing: links INTA#-INTD# set in setup keep their IRQ if the 82C558M can route it (5, 9-12, 14, 15,

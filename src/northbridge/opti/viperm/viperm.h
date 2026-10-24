@@ -47,5 +47,6 @@ void viperm_dram_init(void);
 
 /* The mainboard's setup values for the chipset, applied by romstage after the DRAM init */
 void newbios_chipset_options(void);
+int viperm_l1_write_back(void);
 
 #endif

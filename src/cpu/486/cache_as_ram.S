@@ -459,6 +459,25 @@ pci_dump_loop:
 	# # # pci_write(UMC_PCI_BDFR(0, 0x10, 0, 0x51), $0x02)
 
 #elif CONFIG(NORTHBRIDGE_OPTI_VIPERM)
+	/* A CPU-only reset (Linux panic: emergency_restart) leaves the PCI masters running, the VT6212 walking its
+	 * schedules in DRAM: their snoops would hit the CAR lines. Bus mastering off (command bit 2) on bus 0 from
+	 * device 2, every function that answers. */
+	movl	$0x80001004, %ebx
+pci_master_off:
+	movl	%ebx, %eax
+	movw	$0xcf8, %dx
+	outl	%eax, %dx
+	movw	$0xcfc, %dx
+	inw	%dx, %ax
+	cmpw	$0xffff, %ax
+	je	pci_master_next
+	andw	$0xfffb, %ax
+	outw	%ax, %dx
+pci_master_next:
+	addl	$0x100, %ebx
+	cmpl	$0x80010004, %ebx
+	jne	pci_master_off
+
 	/* 0x1A0000 in cacheable DRAM: bank 0 = 2 MB (13h = 81h). The 82C557M
 	 * powers up so (index 00h), not after a CPU-only reset. A20 on (port 92h
 	 * bit 1, as the IBM BIOS before sizing): bit 20 of 0x1A0000. */
